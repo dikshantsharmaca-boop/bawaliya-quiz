@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>$BAWALIYA</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --maroon: #7A1F2B;
+    --gold: #D4A017;
+    --gold-soft: #E8C766;
+    --bg: #1A0F0A;
+    --bg-raised: #241510;
+    --parchment: #F5E6C8;
+    --flame: #E8833A;
+    --line: rgba(212, 160, 23, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: radial-gradient(ellipse at top, #2A1810 0%, var(--bg) 60%);
+    color: var(--parchment);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 18px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .serif { font-family: 'Georgia', 'Iowan Old Style', serif; }
+
+  .stage { width: 100%; max-width: 420px; }
+
+  .symbol { font-size: 38px; text-align: center; margin-bottom: 12px; }
+  h1.title { font-size: 24px; text-align: center; color: var(--gold-soft); margin-bottom: 6px; font-weight: 400; }
+  .subtitle { text-align: center; font-size: 13px; color: rgba(245,230,200,0.6); line-height: 1.6; margin-bottom: 30px; padding: 0 10px; }
+
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+    text-decoration: none;
+    color: var(--parchment);
+}
+  .card:hover { border-color: var(--gold); }
+  .card:active { transform: scale(0.98); }
+
+  .card-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(212,160,23,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .card-title { font-size: 15.5px; font-weight: 600; margin-bottom: 3px; }
+  .card-desc { font-size: 12.5px; color: rgba(245,230,200,0.55); line-height: 1.4; }
+
+  footer.brandmark {
+    text-align: center;
+    font-size: 11px;
+    color: rgba(245,230,200,0.3);
+    margin-top: 24px;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="symbol">🪔</div>
+  <h1 class="title serif">The Bawaliya Path</h1>
+  <p class="subtitle">Choose how you'd like to walk with the prophecy today.</p>
+
+  <a class="card" href="index.html">
+    <div class="card-icon">🔮</div>
+    <div>
+      <div class="card-title">The Prophecy Quiz</div>
+      <div class="card-desc">Test what you know of the saint, the temple, and the lineage it foretold.</div>
+    </div>
+  </a>
+
+  <a class="card" href="runner.html">
+    <div class="card-icon">🪔</div>
+    <div>
+      <div class="card-title">Path to the Temple</div>
+      <div class="card-desc">Run the devotee's road. Dodge what blocks the way. See how far faith carries you.</div>
+    </div>
+  </a>
+
+  <footer class="brandmark serif">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+</div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+</script>
+</body>
+</html>
