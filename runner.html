@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Path to the Temple</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --maroon: #7A1F2B;
+    --maroon-deep: #5A1620;
+    --gold: #D4A017;
+    --gold-soft: #E8C766;
+    --bg: #1A0F0A;
+    --bg-raised: #241510;
+    --parchment: #F5E6C8;
+    --flame: #E8833A;
+    --line: rgba(212, 160, 23, 0.18);
+    --dusk-top: #1B2A4A;
+    --dusk-mid: #3A4D75;
+    --dusk-horizon: #C97A4F;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; }
+  }
+
+  html, body {
+    background: var(--bg);
+    overflow: hidden;
+    height: 100%;
+    touch-action: none;
+  }
+
+  body {
+    color: var(--parchment);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .serif { font-family: 'Georgia', 'Iowan Old Style', serif; }
+
+  .stage {
+    width: 100%;
+    max-width: 420px;
+    height: 100vh;
+    max-height: 760px;
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    z-index: 5;
+    padding: 28px 22px;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ---------- Menu ---------- */
+  #screen-menu { justify-content: center; align-items: center; text-align: center; }
+  .symbol { font-size: 38px; margin-bottom: 16px; }
+  h1.title { font-size: 25px; color: var(--gold-soft); margin-bottom: 8px; font-weight: 400; }
+  .subtitle { font-size: 13.5px; color: rgba(245,230,200,0.6); line-height: 1.6; margin-bottom: 30px; padding: 0 8px; }
+
+  .btn {
+    display: block;
+    width: 100%;
+    max-width: 240px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--bg);
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    border: none;
+    border-radius: 10px;
+    padding: 15px 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212,160,23,0.25);
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .best-score {
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--flame);
+    margin-bottom: 22px;
+  }
+
+  /* ---------- HUD (during gameplay) ---------- */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 6;
+    display: none;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 18px 18px 0;
+    pointer-events: none;
+  }
+  #hud.active { display: flex; }
+
+  .hud-score {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--parchment);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  }
+  .hud-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(245,230,200,0.7);
+  }
+
+  /* ---------- Canvas / game world ---------- */
+  #game-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+  }
+
+  /* ---------- Result overlay ---------- */
+  #screen-result .unveil-flame {
+    width: 70px; height: 70px; margin: 0 auto 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    background: radial-gradient(circle, rgba(232,131,58,0.22) 0%, transparent 75%);
+  }
+  #screen-result { justify-content: center; align-items: center; text-align: center; background: rgba(26,15,10,0.92); }
+  .result-score { font-size: 36px; color: var(--gold-soft); margin-bottom: 4px; font-weight: 600; }
+  .result-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--flame); margin-bottom: 22px; }
+  .result-best { font-size: 13px; color: rgba(245,230,200,0.6); margin-bottom: 26px; }
+  .result-best strong { color: var(--gold-soft); font-weight: 600; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--gold-soft);
+    border: 1px solid var(--line);
+    box-shadow: none;
+    margin-top: 10px;
+  }
+
+  footer.brandmark {
+    position: absolute;
+    bottom: 14px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(245,230,200,0.3);
+    letter-spacing: 0.5px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .swipe-hint {
+    position: absolute;
+    bottom: 70px; left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(245,230,200,0.55);
+    z-index: 6;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <canvas id="game-canvas"></canvas>
+
+  <div id="hud">
+    <div>
+      <div class="hud-label">Distance</div>
+      <div class="hud-score" id="hud-score">0</div>
+    </div>
+  </div>
+
+  <div class="swipe-hint" id="swipe-hint">Swipe up to jump &middot; swipe down to duck</div>
+
+  <section id="screen-menu" class="screen active">
+    <div class="symbol">🪔</div>
+    <h1 class="title serif">Path to the Temple</h1>
+    <p class="subtitle">Run the devotee's road. Dodge what blocks the way. See how far faith carries you.</p>
+    <div class="best-score" id="menu-best">BEST: 0M</div>
+    <button class="btn" id="btn-start">Begin the Run</button>
+    <a href="home.html" class="btn btn-ghost" style="text-decoration:none; display:block; text-align:center; margin-top:12px;">Back to Path</a>
+  </section>
+
+  <section id="screen-result" class="screen">
+    <div class="unveil-flame">🔮</div>
+    <div class="result-score" id="result-score">0</div>
+    <div class="result-label">METERS WALKED TOWARD THE TEMPLE</div>
+    <div class="result-best" id="result-best">Best: <strong>0m</strong></div>
+    <button class="btn" id="btn-retry">Run Again</button>
+    <button class="btn btn-ghost" id="btn-menu">Back to Menu</button>
+    <a href="home.html" class="btn btn-ghost" style="text-decoration:none; display:block; text-align:center; margin-top:10px;">Back to Path</a>
+  </section>
+
+  <footer class="brandmark serif">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+</div>
+
+<script>
+(function () {
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const STORAGE_KEY = 'bawaliya_runner_best';
+
+  /* ============================================================
+     CANVAS SETUP
+     ============================================================ */
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let W, H, GROUND_Y;
+
+  function resize() {
+    const rect = stage.getBoundingClientRect();
+    W = rect.width;
+    H = rect.height;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    GROUND_Y = H * 0.74;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  /* ============================================================
+     GAME STATE
+     ============================================================ */
+  const LANE_Y = () => GROUND_Y;
+  const PLAYER_X = () => W * 0.28;
+  const PLAYER_W = 34;
+  const PLAYER_H_STAND = 52;
+  const PLAYER_H_DUCK = 30;
+
+  let running = false;
+  let raf = null;
+  let lastTime = 0;
+  let speed = 0;
+  const BASE_SPEED = 260;
+  const MAX_SPEED = 520;
+
+  let distance = 0;
+  let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+  // localStorage may not persist inside Telegram WebView reliably; fallback handled by var if needed.
+  document.getElementById('menu-best').textContent = `BEST: ${best}M`;
+
+  let player = {
+    y: 0,        // offset above ground, 0 = standing on ground
+    vy: 0,
+    ducking: false,
+    state: 'run', // run | jump | duck
+    runCycle: 0   // 0..1, drives leg/arm swing while running
+  };
+
+  const GRAVITY = 1700;
+  const JUMP_VELOCITY = -620;
+
+  let obstacles = [];
+  let spawnTimer = 0;
+  let nextSpawnGap = 1.1;
+
+  let groundOffset = 0;
+
+  /* ============================================================
+     OBSTACLE TYPES
+     low  -> must jump over (sits on ground)
+     high -> must duck under (hangs at head height)
+     ============================================================ */
+  function spawnObstacle() {
+    const type = Math.random() < 0.55 ? 'low' : 'high';
+    const w = type === 'low' ? 30 + Math.random() * 14 : 46 + Math.random() * 14;
+    const h = type === 'low' ? 38 + Math.random() * 16 : 26;
+    obstacles.push({
+      x: W + 40,
+      w, h, type,
+      passed: false
+    });
+  }
+
+  function resetGame() {
+    distance = 0;
+    speed = BASE_SPEED;
+    obstacles = [];
+    spawnTimer = 0;
+    nextSpawnGap = 1.3;
+    player.y = 0;
+    player.vy = 0;
+    player.ducking = false;
+    player.state = 'run';
+    groundOffset = 0;
+  }
+
+  /* ============================================================
+     INPUT — swipe up = jump, swipe down = duck, tap = jump
+     ============================================================ */
+  let touchStartY = null;
+  let touchStartTime = 0;
+
+  function doJump() {
+    if (player.state === 'jump') return;
+    player.vy = JUMP_VELOCITY;
+    player.state = 'jump';
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  }
+
+  function startDuck() {
+    if (player.state === 'jump') return;
+    player.ducking = true;
+    player.state = 'duck';
+  }
+
+  function endDuck() {
+    if (player.state === 'duck') {
+      player.ducking = false;
+      player.state = 'run';
+    }
+  }
+
+  stage.addEventListener('touchstart', (e) => {
+    if (!running) return;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  stage.addEventListener('touchend', (e) => {
+    if (!running || touchStartY === null) return;
+    const endY = e.changedTouches[0].clientY;
+    const dy = endY - touchStartY;
+    const dt = Date.now() - touchStartTime;
+
+    if (Math.abs(dy) < 18 && dt < 300) {
+      doJump();
+    } else if (dy < -30) {
+      doJump();
+    } else if (dy > 30) {
+      startDuck();
+      setTimeout(endDuck, 420);
+    }
+    touchStartY = null;
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (!running) return;
+    if (e.code === 'Space' || e.code === 'ArrowUp') doJump();
+    if (e.code === 'ArrowDown') startDuck();
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowDown') endDuck();
+  });
+
+  /* ============================================================
+     DRAWING
+     ============================================================ */
+  function drawSky() {
+    const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    grad.addColorStop(0, '#16223D');
+    grad.addColorStop(0.55, '#3A4D75');
+    grad.addColorStop(1, '#C97A4F');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, GROUND_Y);
+
+    // sun/moon glow disc near horizon
+    ctx.beginPath();
+    ctx.arc(W * 0.78, GROUND_Y * 0.62, 34, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(232,199,102,0.85)';
+    ctx.fill();
+
+    // distant temple silhouette
+    ctx.fillStyle = 'rgba(26,15,10,0.55)';
+    const baseX = W * 0.78, baseY = GROUND_Y * 0.62;
+    ctx.beginPath();
+    ctx.moveTo(baseX - 26, baseY + 30);
+    ctx.lineTo(baseX - 26, baseY + 6);
+    ctx.lineTo(baseX - 14, baseY - 14);
+    ctx.lineTo(baseX, baseY - 30);
+    ctx.lineTo(baseX + 14, baseY - 14);
+    ctx.lineTo(baseX + 26, baseY + 6);
+    ctx.lineTo(baseX + 26, baseY + 30);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawGround() {
+    ctx.fillStyle = '#1A0F0A';
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+    ctx.strokeStyle = 'rgba(212,160,23,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(W, GROUND_Y);
+    ctx.stroke();
+
+    // scrolling path segments (gold dashes) to sell speed
+    ctx.strokeStyle = 'rgba(212,160,23,0.18)';
+    ctx.lineWidth = 3;
+    const dashLen = 26, gapLen = 22, total = dashLen + gapLen;
+    let x = -((groundOffset) % total);
+    while (x < W) {
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y + 14);
+      ctx.lineTo(x + dashLen, GROUND_Y + 14);
+      ctx.stroke();
+      x += total;
+    }
+  }
+
+  function drawPlayer() {
+    const x = PLAYER_X();
+    const state = player.state; // run | jump | duck
+    const ducking = state === 'duck';
+    const jumping = state === 'jump';
+    const h = ducking ? PLAYER_H_DUCK : PLAYER_H_STAND;
+    const groundY = GROUND_Y - player.y; // feet line
+    const topY = groundY - h;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const robeColor = '#E8C766';
+    const skinColor = '#D9A86C';
+    const staffColor = '#8A5A2B';
+    const tilakColor = '#E8833A';
+    const beadColor = '#7A1F2B';
+
+    if (ducking) {
+      // crouched figure: compact, low profile sliding under obstacles
+      const cx = x, cy = topY + h * 0.5;
+      // robe (compact oval)
+      ctx.fillStyle = robeColor;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + h * 0.18, PLAYER_W * 0.62, h * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // head, tucked low
+      ctx.beginPath();
+      ctx.fillStyle = skinColor;
+      ctx.arc(cx + 6, cy - h * 0.22, 8, 0, Math.PI * 2);
+      ctx.fill();
+      // tilak
+      ctx.strokeStyle = tilakColor;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(cx + 6, cy - h * 0.22 - 7);
+      ctx.lineTo(cx + 6, cy - h * 0.22 - 2);
+      ctx.stroke();
+      // trailing staff, dragged low
+      ctx.strokeStyle = staffColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - PLAYER_W * 0.6, cy + h * 0.3);
+      ctx.lineTo(cx - PLAYER_W * 1.05, cy - h * 0.05);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    // running / jumping figure with limbs
+    const cycle = player.runCycle; // 0..1
+    const swing = jumping ? 0.55 : Math.sin(cycle * Math.PI * 2);
+    const swingBack = jumping ? -0.4 : Math.sin(cycle * Math.PI * 2 + Math.PI);
+
+    const headR = 10;
+    const headCx = x;
+    const headCy = topY + headR + 1;
+    const shoulderY = headCy + headR + 3;
+    const hipY = shoulderY + h * 0.34;
+    const legLen = groundY - hipY;
+    const armLen = h * 0.28;
+
+    // back leg
+    ctx.strokeStyle = robeColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(x, hipY);
+    if (jumping) {
+      ctx.lineTo(x - 9, hipY + legLen * 0.55);
+      ctx.lineTo(x - 13, hipY + legLen * 0.95);
+    } else {
+      ctx.lineTo(x + swingBack * 11, hipY + legLen * 0.6);
+      ctx.lineTo(x + swingBack * 15, groundY);
+    }
+    ctx.stroke();
+
+    // front leg
+    ctx.beginPath();
+    ctx.moveTo(x, hipY);
+    if (jumping) {
+      ctx.lineTo(x + 11, hipY + legLen * 0.5);
+      ctx.lineTo(x + 16, hipY + legLen * 0.85);
+    } else {
+      ctx.lineTo(x + swing * 11, hipY + legLen * 0.6);
+      ctx.lineTo(x + swing * 15, groundY);
+    }
+    ctx.stroke();
+
+    // robe body (torso), drawn over leg tops to hide joints
+    ctx.fillStyle = robeColor;
+    roundRect(x - PLAYER_W * 0.38, shoulderY - 2, PLAYER_W * 0.76, hipY - shoulderY + 10, 7);
+    ctx.fill();
+
+    // bead necklace across chest
+    ctx.fillStyle = beadColor;
+    const beadY = shoulderY + 6;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.arc(x + i * 4.5, beadY + Math.abs(i) * 1.5, 2.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // back arm (holds staff)
+    ctx.strokeStyle = skinColor;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, shoulderY + 4);
+    const backArmX = jumping ? x - 14 : x - 6 + swingBack * 8;
+    const backArmY = jumping ? shoulderY - 6 : shoulderY + 4 + Math.abs(swing) * 6;
+    ctx.lineTo(backArmX, backArmY);
+    ctx.stroke();
+
+    // staff, held by back arm, planted toward the ground behind
+    ctx.strokeStyle = staffColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(backArmX, backArmY);
+    ctx.lineTo(backArmX - 10, groundY + 2);
+    ctx.stroke();
+
+    // front arm
+    ctx.strokeStyle = skinColor;
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, shoulderY + 4);
+    const frontArmX = jumping ? x + 13 : x + 6 + swing * 8;
+    const frontArmY = jumping ? shoulderY - 4 : shoulderY + 4 + Math.abs(swingBack) * 6;
+    ctx.lineTo(frontArmX, frontArmY);
+    ctx.stroke();
+
+    // head
+    ctx.beginPath();
+    ctx.fillStyle = skinColor;
+    ctx.arc(headCx, headCy, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // tilak mark on forehead
+    ctx.strokeStyle = tilakColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(headCx, headCy - headR + 2);
+    ctx.lineTo(headCx, headCy - 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawObstacle(o) {
+    ctx.fillStyle = o.type === 'low' ? '#7A1F2B' : '#5A1620';
+    const y = o.type === 'low' ? GROUND_Y - o.h : GROUND_Y - PLAYER_H_STAND - 6 - o.h + 14;
+    roundRect(o.x, y, o.w, o.h, 5);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(212,160,23,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  /* ============================================================
+     COLLISION
+     ============================================================ */
+  function getPlayerBox() {
+    const x = PLAYER_X();
+    const ducking = player.state === 'duck';
+    const h = ducking ? PLAYER_H_DUCK : PLAYER_H_STAND;
+    const y = GROUND_Y - h - player.y;
+    return { x: x - PLAYER_W / 2, y, w: PLAYER_W, h };
+  }
+
+  function getObstacleBox(o) {
+    const y = o.type === 'low' ? GROUND_Y - o.h : GROUND_Y - PLAYER_H_STAND - 6 - o.h + 14;
+    return { x: o.x, y, w: o.w, h: o.h };
+  }
+
+  function intersects(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  /* ============================================================
+     MAIN LOOP
+     ============================================================ */
+  function update(dt) {
+    speed = Math.min(MAX_SPEED, BASE_SPEED + distance * 0.6);
+    distance += speed * dt * 0.05;
+    groundOffset += speed * dt;
+
+    // physics
+    player.vy += GRAVITY * dt;
+    player.y -= player.vy * dt;
+    if (player.y < 0) { player.y = 0; player.vy = 0; if (player.state === 'jump') player.state = 'run'; }
+
+    // run-cycle animation (legs/arms swing), tied to speed, paused while jumping
+    if (player.state === 'run') {
+      player.runCycle = (player.runCycle + dt * (2.2 + speed / 260)) % 1;
+    }
+
+    // spawn
+    spawnTimer += dt;
+    if (spawnTimer >= nextSpawnGap) {
+      spawnTimer = 0;
+      nextSpawnGap = Math.max(0.65, 1.3 - distance / 900);
+      spawnObstacle();
+    }
+
+    // move obstacles
+    const playerBox = getPlayerBox();
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      o.x -= speed * dt;
+      if (o.x + o.w < -20) { obstacles.splice(i, 1); continue; }
+      if (intersects(playerBox, getObstacleBox(o))) {
+        endRun();
+        return;
+      }
+    }
+
+    document.getElementById('hud-score').textContent = Math.floor(distance);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    drawSky();
+    drawGround();
+    obstacles.forEach(drawObstacle);
+    drawPlayer();
+  }
+
+  function loop(ts) {
+    if (!running) return;
+    if (!lastTime) lastTime = ts;
+    const dt = Math.min(0.033, (ts - lastTime) / 1000);
+    lastTime = ts;
+    update(dt);
+    if (!running) return;
+    render();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function startRun() {
+    resetGame();
+    running = true;
+    lastTime = 0;
+    showScreen('none');
+    document.getElementById('hud').classList.add('active');
+    const hint = document.getElementById('swipe-hint');
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 2800);
+    raf = requestAnimationFrame(loop);
+  }
+
+  function endRun() {
+    running = false;
+    cancelAnimationFrame(raf);
+    document.getElementById('hud').classList.remove('active');
+
+    const finalScore = Math.floor(distance);
+    let prevBest;
+    try {
+      prevBest = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+    } catch (e) { prevBest = best; }
+    if (finalScore > prevBest) {
+      best = finalScore;
+      try { localStorage.setItem(STORAGE_KEY, String(best)); } catch (e) {}
+    } else {
+      best = prevBest;
+    }
+
+    document.getElementById('result-score').textContent = finalScore;
+    document.getElementById('result-best').innerHTML = `Best: <strong>${best}m</strong>`;
+    document.getElementById('menu-best').textContent = `BEST: ${best}M`;
+
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+    showScreen('screen-result');
+  }
+
+  /* ============================================================
+     SCREEN MANAGEMENT
+     ============================================================ */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    if (id !== 'none') document.getElementById(id).classList.add('active');
+  }
+
+  document.getElementById('btn-start').addEventListener('click', startRun);
+  document.getElementById('btn-retry').addEventListener('click', startRun);
+  document.getElementById('btn-menu').addEventListener('click', () => showScreen('screen-menu'));
+
+  // initial static render behind menu
+  render();
+})();
+</script>
+</body>
+</html>
