@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Bawaliya Prophecy</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --maroon: #7A1F2B;
+    --maroon-deep: #5A1620;
+    --gold: #D4A017;
+    --gold-soft: #E8C766;
+    --bg: #1A0F0A;
+    --bg-raised: #241510;
+    --parchment: #F5E6C8;
+    --flame: #E8833A;
+    --line: rgba(212, 160, 23, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background: radial-gradient(ellipse at top, #2A1810 0%, var(--bg) 60%);
+    color: var(--parchment);
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .ui {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .stage {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+  }
+
+  /* ---------- Ambient flame glow ---------- */
+  .glow {
+    position: fixed;
+    top: -10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(232,131,58,0.10) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: relative;
+    z-index: 1;
+    display: none;
+  }
+  .screen.active { display: block; animation: fadeUp 0.45s ease both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Intro ---------- */
+  .symbol {
+    font-size: 40px;
+    text-align: center;
+    margin-bottom: 18px;
+    filter: drop-shadow(0 0 18px rgba(232,131,58,0.35));
+  }
+
+  h1.title {
+    font-size: 28px;
+    text-align: center;
+    color: var(--gold-soft);
+    letter-spacing: 0.3px;
+    line-height: 1.25;
+    margin-bottom: 10px;
+    font-weight: 400;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    color: rgba(245,230,200,0.65);
+    line-height: 1.6;
+    margin-bottom: 32px;
+    padding: 0 12px;
+  }
+
+  .divider {
+    width: 64px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 24px auto;
+    opacity: 0.6;
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--bg);
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    border: none;
+    border-radius: 10px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 14px rgba(212,160,23,0.25);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: 2px solid var(--flame); outline-offset: 2px; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--gold-soft);
+    border: 1px solid var(--line);
+    box-shadow: none;
+    margin-top: 10px;
+  }
+
+  /* ---------- Quiz ---------- */
+  .station-label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--flame);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  .path-track {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .path-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .path-dot.lit { background: var(--gold); transform: scale(1.2); }
+  .path-dot.current { background: var(--flame); }
+
+  .question-card {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 22px;
+  }
+
+  .question-text {
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--parchment);
+    margin-bottom: 24px;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    text-align: left;
+    color: var(--parchment);
+    background: rgba(212,160,23,0.06);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .option:hover { border-color: var(--gold); background: rgba(212,160,23,0.1); }
+  .option:focus-visible { outline: 2px solid var(--flame); outline-offset: 2px; }
+
+  .option.correct {
+    background: rgba(212,160,23,0.22);
+    border-color: var(--gold);
+    color: var(--gold-soft);
+  }
+  .option.wrong {
+    background: rgba(122,31,43,0.35);
+    border-color: var(--maroon);
+    opacity: 0.7;
+  }
+  .option.disabled { pointer-events: none; }
+
+  /* ---------- Result / Unveiling ---------- */
+  .unveil-flame {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    background: radial-gradient(circle, rgba(232,131,58,0.25) 0%, rgba(212,160,23,0.08) 60%, transparent 80%);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,131,58,0.0); }
+    50% { box-shadow: 0 0 30px 6px rgba(232,131,58,0.12); }
+  }
+
+  .result-score {
+    text-align: center;
+    font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--flame);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .result-title {
+    text-align: center;
+    font-size: 25px;
+    color: var(--gold-soft);
+    margin-bottom: 14px;
+  }
+
+  .result-text {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(245,230,200,0.75);
+    padding: 0 8px;
+    margin-bottom: 28px;
+  }
+
+  .badge-frame {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 24px;
+    border-radius: 50%;
+    background: var(--bg-raised);
+    border: 1px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    box-shadow: 0 0 0 6px rgba(212,160,23,0.08), 0 0 40px rgba(232,131,58,0.18);
+  }
+
+  .badge-name {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 32px;
+  }
+
+  footer.brandmark {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    color: rgba(245,230,200,0.3);
+    margin-top: 28px;
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="stage">
+
+  <!-- INTRO SCREEN -->
+  <section id="screen-intro" class="screen active">
+    <div class="symbol">🪔</div>
+    <h1 class="title">The Bawaliya Prophecy</h1>
+    <p class="subtitle">Test how deeply you know the saint's word, the temple's history, and the lineage it foretold.</p>
+    <div class="divider"></div>
+    <button class="btn ui" id="btn-start">Begin the Quiz</button>
+  </section>
+
+  <!-- QUIZ SCREEN -->
+  <section id="screen-quiz" class="screen">
+    <div class="station-label ui" id="station-label">STATION 1 OF 5</div>
+    <div class="path-track" id="path-track"></div>
+    <div class="question-card">
+      <div class="question-text" id="question-text"></div>
+      <div class="options" id="options-container"></div>
+    </div>
+  </section>
+
+  <!-- RESULT SCREEN -->
+  <section id="screen-result" class="screen">
+    <div class="unveil-flame">🔮</div>
+    <div class="result-score ui" id="result-score">4 OF 5 STATIONS LIT</div>
+    <h2 class="result-title" id="result-title">True Believer</h2>
+    <p class="result-text ui" id="result-text">Placeholder text.</p>
+
+    <div class="badge-frame" id="badge-frame">🪔</div>
+    <div class="badge-name ui" id="badge-name">BADGE UNLOCKED</div>
+
+    <button class="btn ui" id="btn-share">Share My Result</button>
+    <button class="btn btn-ghost ui" id="btn-retry">Try Again</button>
+    <a class="btn btn-ghost ui" id="btn-home" href="home.html" style="text-decoration:none; display:block; text-align:center;">Back to Path</a>
+  </section>
+
+  <footer class="brandmark ui">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+</div>
+
+<script>
+(function () {
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  /* ============================================================
+     QUIZ CONTENT — swap this array to update questions any time.
+     No other code needs to change.
+     ============================================================ */
+  const QUESTIONS = [
+    {
+      q: "In which Rajasthan town is the temple connected to the Bawaliya saint located?",
+      options: ["Chirawa", "Jaipur", "Udaipur", "Bikaner"],
+      correct: 0
+    },
+    {
+      q: "The saint's prophecy is said to have foretold the rise of which business empire?",
+      options: ["Tata", "Birla", "Ambani", "Adani"],
+      correct: 1
+    },
+    {
+      q: "How many generations has the founder's family held a connection to this temple?",
+      options: ["One", "Two", "Three", "Four"],
+      correct: 2
+    },
+    {
+      q: "What is $BAWALIYA's official launch platform?",
+      options: ["Raydium", "pump.fun", "Uniswap", "Jupiter"],
+      correct: 1
+    },
+    {
+      q: "True or false — there is a presale or private sale before launch.",
+      options: ["True", "False — public launch only, no presale"],
+      correct: 1
+    }
+  ];
+
+  /* ============================================================
+     BADGE TIERS — swap emoji for real sticker image URLs later
+     by replacing the `art` field with an <img> path.
+     ============================================================ */
+  function getBadge(score, total) {
+    const pct = score / total;
+    if (pct === 1) {
+      return { art: "🔥", name: "Keeper of the Prophecy", title: "Keeper of the Prophecy",
+        text: "Every station lit. You know the saint's word as well as those who carry it forward." };
+    } else if (pct >= 0.6) {
+      return { art: "🪔", name: "True Believer", title: "True Believer",
+        text: "Most of the path is lit in you. The prophecy recognizes a believer when it sees one." };
+    } else {
+      return { art: "🌙", name: "Seeker", title: "Still Seeking",
+        text: "The path has more stations to walk. Return to the temple's story and try again." };
+    }
+  }
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  let current = 0;
+  let score = 0;
+  let answered = false;
+
+  const screens = {
+    intro: document.getElementById('screen-intro'),
+    quiz: document.getElementById('screen-quiz'),
+    result: document.getElementById('screen-result')
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  function renderPathTrack() {
+    const track = document.getElementById('path-track');
+    track.innerHTML = '';
+    QUESTIONS.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'path-dot';
+      if (i < current) dot.classList.add('lit');
+      if (i === current) dot.classList.add('current');
+      track.appendChild(dot);
+    });
+  }
+
+  function renderQuestion() {
+    answered = false;
+    const item = QUESTIONS[current];
+    document.getElementById('station-label').textContent =
+      `STATION ${current + 1} OF ${QUESTIONS.length}`;
+    document.getElementById('question-text').textContent = item.q;
+    renderPathTrack();
+
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    item.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option ui';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleAnswer(idx, btn, container));
+      container.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(idx, btnEl, container) {
+    if (answered) return;
+    answered = true;
+
+    const item = QUESTIONS[current];
+    const allBtns = container.querySelectorAll('.option');
+    allBtns.forEach(b => b.classList.add('disabled'));
+
+    if (idx === item.correct) {
+      score++;
+      btnEl.classList.add('correct');
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    } else {
+      btnEl.classList.add('wrong');
+      allBtns[item.correct].classList.add('correct');
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+    }
+
+    setTimeout(() => {
+      current++;
+      if (current < QUESTIONS.length) {
+        renderQuestion();
+      } else {
+        renderResult();
+      }
+    }, 850);
+  }
+
+  function renderResult() {
+    const badge = getBadge(score, QUESTIONS.length);
+    document.getElementById('result-score').textContent =
+      `${score} OF ${QUESTIONS.length} STATIONS LIT`;
+    document.getElementById('result-title').textContent = badge.title;
+    document.getElementById('result-text').textContent = badge.text;
+    document.getElementById('badge-frame').textContent = badge.art;
+    document.getElementById('badge-name').textContent = badge.name.toUpperCase();
+    showScreen('result');
+
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  }
+
+  function shareResult() {
+    const badge = getBadge(score, QUESTIONS.length);
+    const text = `🪔 I scored ${score}/${QUESTIONS.length} on the Bawaliya Prophecy Quiz and unlocked "${badge.name}".\n\nThink you know the prophecy? Try it: `;
+
+    if (tg?.openTelegramLink) {
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
+      tg.openTelegramLink(shareUrl);
+    } else if (navigator.share) {
+      navigator.share({ text, url: window.location.href });
+    } else {
+      navigator.clipboard?.writeText(text + window.location.href);
+      alert('Result copied — paste it anywhere to share.');
+    }
+  }
+
+  document.getElementById('btn-start').addEventListener('click', () => {
+    current = 0; score = 0;
+    showScreen('quiz');
+    renderQuestion();
+  });
+
+  document.getElementById('btn-retry').addEventListener('click', () => {
+    current = 0; score = 0;
+    showScreen('quiz');
+    renderQuestion();
+  });
+
+  document.getElementById('btn-share').addEventListener('click', shareResult);
+
+})();
+</script>
+</body>
+</html>
