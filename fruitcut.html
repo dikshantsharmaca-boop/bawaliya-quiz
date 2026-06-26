@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Prasad Cutting — Bawaliya</title>
+<style>
+  :root{
+    --maroon:#7A1F2B;
+    --gold:#D4A017;
+    --dark:#1A0F0A;
+    --parchment:#F5E6C8;
+    --flame:#E8833A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    width:100%; height:100%; overflow:hidden;
+    background:var(--dark);
+    font-family:'Georgia', 'Times New Roman', serif;
+    touch-action:none;
+    user-select:none;
+  }
+  #game{
+    position:relative;
+    width:100%; height:100vh;
+    background:linear-gradient(180deg, #2a1410 0%, #1A0F0A 55%, #120a07 100%);
+    overflow:hidden;
+  }
+
+  /* Ambient temple glow backdrop */
+  .glow{
+    position:absolute; left:50%; bottom:-10%;
+    width:140%; height:60%;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(232,131,58,0.18) 0%, rgba(232,131,58,0) 70%);
+    pointer-events:none;
+  }
+  .temple-silhouette{
+    position:absolute; bottom:0; left:0; width:100%; height:120px;
+    opacity:0.35; pointer-events:none;
+  }
+
+  /* HUD */
+  #hud{
+    position:absolute; top:0; left:0; width:100%;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:14px 16px; z-index:30;
+    pointer-events:none;
+  }
+  .hud-pill{
+    background:rgba(26,15,10,0.72);
+    border:1px solid rgba(212,160,23,0.45);
+    border-radius:999px;
+    padding:7px 14px;
+    color:var(--parchment);
+    font-size:14px;
+    letter-spacing:0.03em;
+    display:flex; align-items:center; gap:6px;
+    backdrop-filter:blur(3px);
+  }
+  .hud-pill b{ color:var(--gold); font-size:16px; }
+  #lives{ display:flex; gap:4px; font-size:16px; }
+
+  /* Start / End overlays */
+  .overlay{
+    position:absolute; inset:0; z-index:50;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at 50% 30%, rgba(122,31,43,0.55) 0%, rgba(18,10,7,0.92) 70%);
+    text-align:center; padding:32px;
+    transition:opacity 0.4s ease;
+  }
+  .overlay.hidden{ opacity:0; pointer-events:none; }
+  .glyph{ font-size:46px; margin-bottom:6px; filter:drop-shadow(0 0 14px rgba(212,160,23,0.5)); }
+  .overlay h1{
+    color:var(--gold);
+    font-size:26px;
+    letter-spacing:0.04em;
+    margin-bottom:10px;
+    text-shadow:0 2px 10px rgba(0,0,0,0.5);
+  }
+  .overlay p{
+    color:var(--parchment);
+    font-size:14.5px;
+    line-height:1.6;
+    max-width:300px;
+    opacity:0.88;
+    margin-bottom:6px;
+  }
+  .overlay .small{ font-size:12.5px; opacity:0.65; margin-top:14px; }
+  .btn{
+    margin-top:22px;
+    background:linear-gradient(180deg, var(--flame), #c4641f);
+    color:var(--dark);
+    border:none;
+    font-family:inherit;
+    font-weight:bold;
+    font-size:16px;
+    letter-spacing:0.03em;
+    padding:13px 34px;
+    border-radius:999px;
+    box-shadow:0 4px 0 #8a4112, 0 6px 18px rgba(0,0,0,0.4);
+    cursor:pointer;
+  }
+  .btn:active{ transform:translateY(3px); box-shadow:0 1px 0 #8a4112; }
+  .btn-secondary{
+    margin-top:10px;
+    background:transparent;
+    border:1px solid rgba(212,160,23,0.5);
+    color:var(--gold);
+    font-family:inherit;
+    font-size:13.5px;
+    padding:9px 22px;
+    border-radius:999px;
+  }
+  .score-final{ color:var(--gold); font-size:42px; font-weight:bold; margin:8px 0; }
+
+  #blade-trail{
+    position:absolute; inset:0; z-index:40; pointer-events:none;
+  }
+
+  .toast{
+    position:absolute; top:64px; left:50%; transform:translateX(-50%);
+    color:var(--gold);
+    font-size:13px;
+    letter-spacing:0.03em;
+    opacity:0;
+    z-index:35;
+    pointer-events:none;
+    text-shadow:0 2px 6px rgba(0,0,0,0.6);
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="glow"></div>
+
+  <svg class="temple-silhouette" viewBox="0 0 400 120" preserveAspectRatio="none">
+    <path fill="#000" d="M0,120 L0,90 L30,90 L30,70 L45,55 L60,70 L60,90 L90,90 L90,60 L105,40 L120,60 L120,90 L150,90 L150,75 L165,75 L165,55 L180,30 L195,55 L195,75 L210,75 L210,90 L250,90 L250,65 L265,50 L280,65 L280,90 L320,90 L320,80 L335,80 L335,60 L350,40 L365,60 L365,80 L400,80 L400,120 Z"/>
+  </svg>
+
+  <div id="hud">
+    <div class="hud-pill">🪔 <b id="score">0</b></div>
+    <div class="hud-pill" id="lives">🔥🔥🔥</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <canvas id="blade-trail"></canvas>
+  <svg id="objects" style="position:absolute; inset:0; z-index:20; width:100%; height:100%;"></svg>
+
+  <div class="overlay" id="startOverlay">
+    <div class="glyph">🔮</div>
+    <h1>Prasad Cutting</h1>
+    <p>Slice the offerings as they rise. Marigolds, coconuts and sweets bring blessings.</p>
+    <p style="color:var(--flame); font-weight:bold;">Avoid the thorn — one cut ends your turn.</p>
+    <button class="btn" id="startBtn">Begin</button>
+    <div class="small">Swipe across the screen to cut</div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="glyph">🪔</div>
+    <h1 id="endTitle">Turn Complete</h1>
+    <div class="score-final" id="finalScore">0</div>
+    <p id="endMsg">Offerings gathered</p>
+    <button class="btn" id="retryBtn">Cut Again</button>
+    <button class="btn-secondary" id="homeBtn">Back to Hub</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const game = document.getElementById('game');
+  const objSvg = document.getElementById('objects');
+  const canvas = document.getElementById('blade-trail');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const livesEl = document.getElementById('lives');
+  const toastEl = document.getElementById('toast');
+  const startOverlay = document.getElementById('startOverlay');
+  const endOverlay = document.getElementById('endOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const homeBtn = document.getElementById('homeBtn');
+  const finalScoreEl = document.getElementById('finalScore');
+  const endTitleEl = document.getElementById('endTitle');
+  const endMsgEl = document.getElementById('endMsg');
+
+  let W, H, DPR;
+  function resize(){
+    DPR = window.devicePixelRatio || 1;
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    objSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---- Object definitions ----
+  // Good offerings (marigold, coconut, sweet/laddu, diya, coin) vs the bomb (thorn/curse mark)
+  const GOOD_TYPES = ['marigold','coconut','laddu','diya','coin'];
+
+  function svgEl(tag, attrs){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function buildMarigold(g){
+    const petColors = ['#D4A017','#E8833A'];
+    for(let i=0;i<8;i++){
+      const angle = i * 45;
+      const p = svgEl('ellipse', {cx:0, cy:-14, rx:7, ry:11, fill:petColors[i%2],
+        transform:`rotate(${angle})`});
+      g.appendChild(p);
+    }
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:7, fill:'#7A1F2B'}));
+  }
+  function buildCoconut(g){
+    g.appendChild(svgEl('ellipse', {cx:0, cy:0, rx:20, ry:24, fill:'#3E2415'}));
+    g.appendChild(svgEl('ellipse', {cx:0, cy:0, rx:20, ry:24, fill:'none', stroke:'#1A0F0A', 'stroke-width':1.5, 'stroke-dasharray':'3,4'}));
+    g.appendChild(svgEl('circle', {cx:-6, cy:-12, r:2.2, fill:'#1A0F0A'}));
+    g.appendChild(svgEl('circle', {cx:6, cy:-12, r:2.2, fill:'#1A0F0A'}));
+    g.appendChild(svgEl('circle', {cx:0, cy:-6, r:2.2, fill:'#1A0F0A'}));
+  }
+  function buildLaddu(g){
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:18, fill:'#E8833A'}));
+    for(let i=0;i<10;i++){
+      const a = Math.random()*Math.PI*2, r = Math.random()*14;
+      g.appendChild(svgEl('circle', {cx:Math.cos(a)*r, cy:Math.sin(a)*r, r:1.6, fill:'#D4A017'}));
+    }
+  }
+  function buildDiya(g){
+    g.appendChild(svgEl('ellipse', {cx:0, cy:6, rx:18, ry:8, fill:'#7A1F2B'}));
+    g.appendChild(svgEl('ellipse', {cx:0, cy:3, rx:14, ry:5, fill:'#1A0F0A'}));
+    g.appendChild(svgEl('path', {d:'M0,-2 C-4,-10 4,-14 0,-22 C-4,-14 4,-10 0,-2 Z', fill:'#E8833A'}));
+    g.appendChild(svgEl('path', {d:'M0,-4 C-2,-9 2,-11 0,-16 C-2,-11 2,-9 0,-4 Z', fill:'#FFD27A'}));
+  }
+  function buildCoin(g){
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:17, fill:'#D4A017', stroke:'#8a6b10', 'stroke-width':2}));
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:11, fill:'none', stroke:'#8a6b10', 'stroke-width':1.5}));
+    g.appendChild(svgEl('text', {x:0, y:5, 'text-anchor':'middle', 'font-size':'13', fill:'#7A1F2B', 'font-family':'Georgia,serif', 'font-weight':'bold'})).textContent = '\u0950';
+  }
+  function buildThorn(g){
+    // generic curse mark — abstract spiky shape, no sacred iconography
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:17, fill:'#1A0F0A', stroke:'#7A1F2B', 'stroke-width':2}));
+    const spikes = svgEl('path', {
+      d:'M0,-20 L5,-6 L18,-10 L8,2 L19,12 L4,9 L0,22 L-4,9 L-19,12 L-8,2 L-18,-10 L-5,-6 Z',
+      fill:'#3a1015'
+    });
+    g.appendChild(spikes);
+    g.appendChild(svgEl('circle', {cx:0, cy:0, r:5, fill:'#E8833A'}));
+  }
+
+  function buildObjectVisual(type, g){
+    if(type==='marigold') buildMarigold(g);
+    else if(type==='coconut') buildCoconut(g);
+    else if(type==='laddu') buildLaddu(g);
+    else if(type==='diya') buildDiya(g);
+    else if(type==='coin') buildCoin(g);
+    else if(type==='thorn') buildThorn(g);
+  }
+
+  // half visuals for sliced halves
+  function buildHalfVisual(type, g, side){
+    const clip = svgEl('clipPath', {id:'clip-'+Math.random().toString(36).slice(2)});
+    const rectW = 30;
+    clip.appendChild(svgEl('rect', {x: side<0 ? -rectW : 0, y:-rectW, width:rectW, height:rectW*2}));
+    objSvg.appendChild(clip);
+    const wrap = svgEl('g', {'clip-path':`url(#${clip.id})`});
+    buildObjectVisual(type, wrap);
+    g.appendChild(wrap);
+  }
+
+  // ---- Game state ----
+  let running = false;
+  let score = 0;
+  let lives = 3;
+  let spawnTimer = null;
+  let lastTime = 0;
+  let objects = [];
+  let particles = [];
+  let rafId = null;
+  let difficulty = 0;
+
+  function updateLivesDisplay(){
+    livesEl.textContent = '🔥'.repeat(Math.max(lives,0)) + '🖤'.repeat(Math.max(3-lives,0));
+  }
+
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.style.opacity = '1';
+    toastEl.style.transition = 'none';
+    requestAnimationFrame(()=>{
+      toastEl.style.transition = 'opacity 1s ease';
+      toastEl.style.opacity = '0';
+    });
+  }
+
+  class GameObject {
+    constructor(){
+      this.type = Math.random() < 0.18 ? 'thorn' : GOOD_TYPES[Math.floor(Math.random()*GOOD_TYPES.length)];
+      this.x = 40 + Math.random()*(W-80);
+      this.y = H + 40;
+      const speedBoost = Math.min(difficulty*0.4, 3);
+      this.vy = -(13 + Math.random()*4 + speedBoost);
+      this.vx = (Math.random()-0.5)*2.4;
+      this.gravity = 0.32;
+      this.rotation = (Math.random()-0.5)*40;
+      this.rotSpeed = (Math.random()-0.5)*6;
+      this.sliced = false;
+      this.dead = false;
+      this.scale = 1;
+      this.g = svgEl('g', {});
+      objSvg.appendChild(this.g);
+      this.render();
+    }
+    render(){
+      this.g.setAttribute('transform', `translate(${this.x},${this.y}) rotate(${this.rotation}) scale(${this.scale})`);
+      if(!this.sliced && this.g.childElementCount===0){
+        buildObjectVisual(this.type, this.g);
+      }
+    }
+    update(dt){
+      this.vy += this.gravity * dt;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.rotation += this.rotSpeed * dt;
+      this.render();
+      if(this.y > H + 60) this.dead = true;
+    }
+    remove(){ if(this.g.parentNode) this.g.parentNode.removeChild(this.g); }
+  }
+
+  class HalfPiece {
+    constructor(obj, side){
+      this.x = obj.x; this.y = obj.y;
+      this.vx = obj.vx + side*3.5 + (Math.random()-0.5);
+      this.vy = obj.vy*0.6 - 2;
+      this.gravity = 0.32;
+      this.rotation = obj.rotation;
+      this.rotSpeed = side*8 + (Math.random()-0.5)*4;
+      this.life = 50;
+      this.g = svgEl('g', {});
+      objSvg.appendChild(this.g);
+      buildHalfVisual(obj.type, this.g, side);
+      this.opacity = 1;
+    }
+    update(dt){
+      this.vy += this.gravity*dt;
+      this.x += this.vx*dt; this.y += this.vy*dt;
+      this.rotation += this.rotSpeed*dt;
+      this.life -= dt;
+      this.opacity = Math.max(this.life/50, 0);
+      this.g.setAttribute('transform', `translate(${this.x},${this.y}) rotate(${this.rotation})`);
+      this.g.style.opacity = this.opacity;
+    }
+    remove(){ if(this.g.parentNode) this.g.parentNode.removeChild(this.g); }
+  }
+
+  let halves = [];
+
+  function spawnObject(){
+    if(!running) return;
+    const count = Math.random() < Math.min(0.18 + difficulty*0.02, 0.45) ? 2 : 1;
+    for(let i=0;i<count;i++){
+      objects.push(new GameObject());
+    }
+    const nextDelay = Math.max(1300 - difficulty*40, 550) + Math.random()*400;
+    spawnTimer = setTimeout(spawnObject, nextDelay);
+  }
+
+  function sliceObject(obj){
+    if(obj.sliced) return;
+    obj.sliced = true;
+    if(obj.type === 'thorn'){
+      loseLife();
+      showToast('The thorn struck — careful');
+    } else {
+      score += 1;
+      scoreEl.textContent = score;
+      if(score>0 && score % 15 === 0) difficulty++;
+    }
+    halves.push(new HalfPiece(obj, -1));
+    halves.push(new HalfPiece(obj, 1));
+    obj.remove();
+    obj.dead = true;
+  }
+
+  function loseLife(){
+    lives -= 1;
+    updateLivesDisplay();
+    game.style.animation = 'none';
+    if(lives <= 0){
+      endGame();
+    }
+  }
+
+  function endGame(){
+    running = false;
+    clearTimeout(spawnTimer);
+    objects.forEach(o=>o.remove());
+    objects = [];
+    finalScoreEl.textContent = score;
+    if(score >= 40){ endTitleEl.textContent = 'Greatly Blessed'; endMsgEl.textContent = 'The temple remembers your offering.'; }
+    else if(score >= 20){ endTitleEl.textContent = 'Well Offered'; endMsgEl.textContent = 'A fine turn at the altar.'; }
+    else { endTitleEl.textContent = 'Turn Complete'; endMsgEl.textContent = 'Offerings gathered'; }
+    endOverlay.classList.remove('hidden');
+  }
+
+  // ---- Blade trail ----
+  let trailPoints = [];
+  let pointerDown = false;
+
+  function addTrailPoint(x,y){
+    trailPoints.push({x,y,t:performance.now()});
+    if(trailPoints.length > 14) trailPoints.shift();
+  }
+
+  function drawTrail(){
+    ctx.clearRect(0,0,W,H);
+    if(trailPoints.length < 2) return;
+    const now = performance.now();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for(let i=1;i<trailPoints.length;i++){
+      const p0 = trailPoints[i-1], p1 = trailPoints[i];
+      const age = (now - p1.t)/220;
+      const alpha = Math.max(1-age, 0);
+      if(alpha<=0) continue;
+      ctx.beginPath();
+      ctx.moveTo(p0.x,p0.y);
+      ctx.lineTo(p1.x,p1.y);
+      ctx.strokeStyle = `rgba(212,160,23,${alpha*0.9})`;
+      ctx.lineWidth = 6*alpha+1.5;
+      ctx.stroke();
+    }
+    trailPoints = trailPoints.filter(p => now - p.t < 220);
+  }
+
+  function checkCollisions(x0,y0,x1,y1){
+    const dx = x1-x0, dy = y1-y0;
+    const len = Math.hypot(dx,dy);
+    if(len < 4) return;
+    objects.forEach(obj=>{
+      if(obj.sliced) return;
+      // distance from obj center to line segment
+      const t = Math.max(0, Math.min(1, ((obj.x-x0)*dx + (obj.y-y0)*dy)/(len*len)));
+      const px = x0 + t*dx, py = y0 + t*dy;
+      const dist = Math.hypot(obj.x-px, obj.y-py);
+      if(dist < 30){
+        sliceObject(obj);
+      }
+    });
+  }
+
+  function handleMove(x,y){
+    if(!running) return;
+    if(trailPoints.length>0){
+      const last = trailPoints[trailPoints.length-1];
+      checkCollisions(last.x,last.y,x,y);
+    }
+    addTrailPoint(x,y);
+  }
+
+  canvas.addEventListener('pointerdown', e=>{ pointerDown=true; trailPoints=[]; addTrailPoint(e.clientX,e.clientY); });
+  canvas.addEventListener('pointermove', e=>{ if(pointerDown) handleMove(e.clientX,e.clientY); });
+  canvas.addEventListener('pointerup', ()=>{ pointerDown=false; trailPoints=[]; });
+  canvas.addEventListener('pointercancel', ()=>{ pointerDown=false; trailPoints=[]; });
+  canvas.style.pointerEvents = 'auto';
+  canvas.style.touchAction = 'none';
+
+  // multi-touch support
+  canvas.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches) addTrailPoint(t.clientX,t.clientY);
+  }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches) handleMove(t.clientX,t.clientY);
+  }, {passive:false});
+
+  // ---- Main loop ----
+  function loop(ts){
+    if(!lastTime) lastTime = ts;
+    const dt = Math.min((ts-lastTime)/16.6, 3);
+    lastTime = ts;
+
+    drawTrail();
+
+    objects.forEach(o=>o.update(dt));
+    objects = objects.filter(o=>{
+      if(o.dead && !o.sliced){
+        // missed a good object — no penalty, just remove
+        o.remove();
+        return false;
+      }
+      if(o.dead){ o.remove(); return false; }
+      return true;
+    });
+
+    halves.forEach(h=>h.update(dt));
+    halves = halves.filter(h=>{
+      if(h.life<=0){ h.remove(); return false; }
+      return true;
+    });
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function startGame(){
+    score = 0; lives = 3; difficulty = 0; lastTime = 0;
+    scoreEl.textContent = '0';
+    updateLivesDisplay();
+    objects.forEach(o=>o.remove()); objects = [];
+    halves.forEach(h=>h.remove()); halves = [];
+    startOverlay.classList.add('hidden');
+    endOverlay.classList.add('hidden');
+    running = true;
+    spawnObject();
+    if(rafId) cancelAnimationFrame(rafId);
+    lastTime = 0;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+  homeBtn.addEventListener('click', ()=>{ window.location.href = 'home.html'; });
+
+  updateLivesDisplay();
+})();
+</script>
+</body>
+</html>
