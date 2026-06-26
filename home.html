@@ -510,3 +510,29 @@
 </script>
 </body>
 </html>
+PASTE-IN SNIPPET FOR home.html
+================================
+Find the tile/button block for your quiz and runner game in home.html.
+It will look something like a <div> or <a> with a class like "tile" or "game-card"
+repeated twice (once for quiz, once for runner).
+
+COPY the runner's tile block, paste it as a THIRD tile right after it, then
+change just these things in your new copy:
+
+1. The link/href:  point it to "fruitcut.html"
+2. The title text:  "Prasad Cutting"
+3. The subtitle/description text:  "Slice the sacred offerings"
+4. The icon/emoji if your tile has one:  🔮 or 🪔 (pick whichever isn't
+   already used by the other two tiles, so all three feel distinct)
+
+Example shape (yours may differ slightly in tag/class names — match
+whatever pattern your existing two tiles already use):
+
+<a href="fruitcut.html" class="tile">
+  <div class="tile-icon">🔮</div>
+  <div class="tile-title">Prasad Cutting</div>
+  <div class="tile-sub">Slice the sacred offerings</div>
+</a>
+
+That's the only change needed in home.html. Commit it, then your three
+games sit side by side as equal tiles.
