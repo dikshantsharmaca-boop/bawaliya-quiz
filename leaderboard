@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Honor Roll — Bawaliya Temple</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --maroon: #7A1F2B;
+    --maroon-deep: #5A1620;
+    --gold: #D4A017;
+    --gold-soft: #E8C766;
+    --bg: #1A0F0A;
+    --bg-raised: #241510;
+    --parchment: #F5E6C8;
+    --flame: #E8833A;
+    --line: rgba(212, 160, 23, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; }
+  }
+
+  body {
+    background: radial-gradient(ellipse at top, #2A1810 0%, var(--bg) 60%);
+    color: var(--parchment);
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    min-height: 100vh;
+    padding: 28px 16px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .ui { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+  .stage { width: 100%; max-width: 420px; margin: 0 auto; position: relative; }
+
+  .glow {
+    position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(232,131,58,0.10) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .header { text-align: center; margin-bottom: 22px; position: relative; z-index: 1; }
+  .symbol { font-size: 34px; margin-bottom: 10px; filter: drop-shadow(0 0 16px rgba(232,131,58,0.3)); }
+  h1.title { font-size: 24px; color: var(--gold-soft); margin-bottom: 8px; font-weight: 400; }
+  .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px; color: rgba(245,230,200,0.6); line-height: 1.55; padding: 0 10px; margin-bottom: 6px; }
+  .week-label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--flame); margin-top: 10px;
+  }
+
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 18px; position: relative; z-index: 1;
+    background: var(--bg-raised); border-radius: 12px; padding: 4px; border: 1px solid var(--line);
+  }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12.5px; font-weight: 600; color: rgba(245,230,200,0.55);
+    border-radius: 9px; cursor: pointer; transition: all 0.2s ease; border: none; background: none;
+  }
+  .tab.active { background: linear-gradient(180deg, var(--gold-soft), var(--gold)); color: var(--bg); }
+
+  /* ---------- Board ---------- */
+  .board { position: relative; z-index: 1; min-height: 220px; }
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-raised); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .rank {
+    width: 28px; flex-shrink: 0; text-align: center;
+    font-size: 15px; font-weight: 700; color: var(--gold-soft);
+  }
+  .row.rank1 .rank { color: var(--gold); font-size: 18px; }
+  .row.rank2 .rank { color: var(--gold-soft); }
+  .row.rank3 .rank { color: var(--flame); }
+  .row-name {
+    flex: 1; min-width: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px; color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .row-score {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px; font-weight: 700; color: var(--gold-soft); flex-shrink: 0;
+  }
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px; color: rgba(245,230,200,0.5); line-height: 1.6;
+  }
+  .loading-state {
+    text-align: center; padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px; color: rgba(245,230,200,0.4);
+  }
+
+  .divider {
+    width: 64px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 26px auto; opacity: 0.6; position: relative; z-index: 1;
+  }
+
+  .btn-ghost {
+    display: block; text-decoration: none; text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px; font-weight: 600;
+    background: transparent; color: var(--gold-soft);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 20px; position: relative; z-index: 1;
+  }
+
+  /* ---------- Name prompt modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(10,5,3,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50; padding: 24px;
+  }
+  .modal-backdrop.hidden { display: none; }
+  .modal {
+    background: var(--bg-raised); border: 1px solid var(--gold);
+    border-radius: 16px; padding: 26px 22px; max-width: 340px; width: 100%;
+    text-align: center;
+  }
+  .modal h2 { font-size: 19px; color: var(--gold-soft); margin-bottom: 8px; font-weight: 400; }
+  .modal p {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12.5px; color: rgba(245,230,200,0.6); line-height: 1.5; margin-bottom: 18px;
+  }
+  .modal input {
+    width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px; background: var(--bg); border: 1px solid var(--line); color: var(--parchment);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; text-align: center;
+  }
+  .modal input:focus { outline: none; border-color: var(--gold); }
+  .modal button {
+    width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px; font-weight: 600; color: var(--bg);
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    border: none; border-radius: 10px; padding: 13px 20px; cursor: pointer;
+  }
+
+  footer.brandmark {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px; color: rgba(245,230,200,0.3);
+    margin-top: 28px; letter-spacing: 0.5px; position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="stage">
+
+  <div class="header">
+    <div class="symbol">\U0001f3c6</div>
+    <h1 class="title">The Honor Roll</h1>
+    <p class="subtitle ui">Those who walked farthest, knew deepest, and cut truest this week.</p>
+    <div class="week-label ui" id="week-label">WEEK OF --</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active ui" data-game="runner">Path to the Temple</button>
+    <button class="tab ui" data-game="quiz">Prophecy Quiz</button>
+    <button class="tab ui" data-game="fruitcut">Prasad Cutting</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="loading-state ui">Reading the temple register&hellip;</div>
+  </div>
+
+  <div class="divider"></div>
+  <a href="home.html" class="btn-ghost ui">Back to Path</a>
+
+  <footer class="brandmark">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+</div>
+
+<div class="modal-backdrop hidden" id="name-modal">
+  <div class="modal">
+    <h2 class="serif">Who walks the path?</h2>
+    <p class="ui">Choose a name for the Honor Roll. This is how others will see you when you place among the top.</p>
+    <input type="text" id="name-input" maxlength="18" placeholder="Your name" autocomplete="off">
+    <button id="name-save" class="ui">Begin</button>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, query, where, orderBy, limit, getDocs,
+    doc, setDoc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+  "apiKey": "AIzaSyCNbL-7lqDGbPrVBdx3WOeoZny200pLqko",
+  "authDomain": "bawaliya-temple.firebaseapp.com",
+  "projectId": "bawaliya-temple",
+  "storageBucket": "bawaliya-temple.firebasestorage.app",
+  "messagingSenderId": "414807278690",
+  "appId": "1:414807278690:web:8f8dcfca417258c3dbfd3b"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  /* ============================================================
+     WEEK KEY — ISO-style week number, used so the board naturally
+     resets each week with zero manual work.
+     ============================================================ */
+  function getWeekKey(d = new Date()) {
+    const date = new Date(d.getTime());
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+    const week1 = new Date(date.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return `${date.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+  }
+
+  function getWeekLabel() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `WEEK OF ${fmt(start).toUpperCase()} \u2013 ${fmt(end).toUpperCase()}`;
+  }
+
+  document.getElementById('week-label').textContent = getWeekLabel();
+
+  /* ============================================================
+     NAME — one-time prompt, stored locally, reused for all submissions
+     ============================================================ */
+  const NAME_KEY = 'bawaliya_player_name';
+
+  function getPlayerName() {
+    return localStorage.getItem(NAME_KEY);
+  }
+
+  function ensureName(callback) {
+    const existing = getPlayerName();
+    if (existing) { callback(existing); return; }
+    const modal = document.getElementById('name-modal');
+    modal.classList.remove('hidden');
+    document.getElementById('name-save').onclick = () => {
+      const val = document.getElementById('name-input').value.trim();
+      if (!val) return;
+      localStorage.setItem(NAME_KEY, val);
+      modal.classList.add('hidden');
+      callback(val);
+    };
+  }
+
+  /* ============================================================
+     BOARD RENDERING
+     ============================================================ */
+  const GAME_LABELS = { runner: 'meters', quiz: 'correct', fruitcut: 'offerings' };
+  let currentGame = 'runner';
+
+  async function loadBoard(game) {
+    const board = document.getElementById('board');
+    board.innerHTML = '<div class="loading-state ui">Reading the temple register&hellip;</div>';
+
+    const weekKey = getWeekKey();
+    try {
+      const scoresRef = collection(db, 'scores');
+      const q = query(
+        scoresRef,
+        where('game', '==', game),
+        where('week', '==', weekKey),
+        orderBy('score', 'desc'),
+        limit(10)
+      );
+      const snap = await getDocs(q);
+      const rows = [];
+      snap.forEach(d => rows.push(d.data()));
+
+      if (rows.length === 0) {
+        board.innerHTML = `<div class="empty-state ui">No one has walked this path yet this week.<br>Be the first to leave your name.</div>`;
+        return;
+      }
+
+      board.innerHTML = '';
+      rows.forEach((r, i) => {
+        const row = document.createElement('div');
+        row.className = `row rank${i + 1}`;
+        row.style.animationDelay = `${i * 0.04}s`;
+        row.innerHTML = `
+          <div class="rank">${i + 1}</div>
+          <div class="row-name ui">${escapeHtml(r.name || 'A devotee')}</div>
+          <div class="row-score ui">${r.score} ${GAME_LABELS[game]}</div>
+        `;
+        board.appendChild(row);
+      });
+    } catch (err) {
+      board.innerHTML = `<div class="empty-state ui">The register could not be read.<br>Check your connection and try again.</div>`;
+      console.error(err);
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentGame = tab.dataset.game;
+      loadBoard(currentGame);
+    });
+  });
+
+  loadBoard(currentGame);
+
+  /* ============================================================
+     EXPOSED GLOBAL — other game pages call this after a run/quiz/
+     round ends to submit a score. Safe no-op if Firestore fails.
+     ============================================================ */
+  window.BawaliyaLeaderboard = {
+    submitScore: function (game, score) {
+      ensureName(async (name) => {
+        try {
+          const weekKey = getWeekKey();
+          const docId = `${game}_${weekKey}_${name.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+          const ref = doc(db, 'scores', docId);
+          const existing = await getDoc(ref);
+          if (existing.exists() && existing.data().score >= score) return; // keep best score only
+          await setDoc(ref, {
+            game, week: weekKey, name, score,
+            updatedAt: Date.now()
+          });
+        } catch (err) {
+          console.error('Score submission failed:', err);
+        }
+      });
+    }
+  };
+</script>
+</body>
+</html>
