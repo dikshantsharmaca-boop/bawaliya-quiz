@@ -56,7 +56,6 @@
     overflow: hidden;
   }
 
-  /* ---------- Screens ---------- */
   .screen {
     position: absolute;
     inset: 0;
@@ -66,7 +65,6 @@
   }
   .screen.active { display: flex; flex-direction: column; }
 
-  /* ---------- Menu ---------- */
   #screen-menu { justify-content: center; align-items: center; text-align: center; }
   .symbol { font-size: 38px; margin-bottom: 16px; }
   h1.title { font-size: 25px; color: var(--gold-soft); margin-bottom: 8px; font-weight: 400; }
@@ -96,7 +94,6 @@
     margin-bottom: 22px;
   }
 
-  /* ---------- HUD (during gameplay) ---------- */
   #hud {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -122,7 +119,6 @@
     color: rgba(245,230,200,0.7);
   }
 
-  /* ---------- Canvas / game world ---------- */
   #game-canvas {
     position: absolute;
     inset: 0;
@@ -130,7 +126,6 @@
     display: block;
   }
 
-  /* ---------- Result overlay ---------- */
   #screen-result .unveil-flame {
     width: 70px; height: 70px; margin: 0 auto 18px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; font-size: 30px;
@@ -184,6 +179,10 @@
       <div class="hud-label">Distance</div>
       <div class="hud-score" id="hud-score">0</div>
     </div>
+    <div style="text-align:right;">
+      <div class="hud-label">Coins</div>
+      <div class="hud-score" id="hud-coins" style="color:#D4A017;">0</div>
+    </div>
   </div>
 
   <div class="swipe-hint" id="swipe-hint">Swipe up to jump &middot; swipe down to duck</div>
@@ -202,6 +201,7 @@
     <div class="result-score" id="result-score">0</div>
     <div class="result-label">METERS WALKED TOWARD THE TEMPLE</div>
     <div class="result-best" id="result-best">Best: <strong>0m</strong></div>
+    <div class="result-best" id="result-coins" style="margin-top:-16px;">Coins gathered: <strong>0</strong></div>
     <button class="btn" id="btn-retry">Run Again</button>
     <button class="btn btn-ghost" id="btn-menu">Back to Menu</button>
     <a href="home.html" class="btn btn-ghost" style="text-decoration:none; display:block; text-align:center; margin-top:10px;">Back to Path</a>
@@ -217,9 +217,6 @@
 
   const STORAGE_KEY = 'bawaliya_runner_best';
 
-  /* ============================================================
-     CANVAS SETUP
-     ============================================================ */
   const stage = document.getElementById('stage');
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
@@ -240,9 +237,6 @@
   window.addEventListener('resize', resize);
   resize();
 
-  /* ============================================================
-     GAME STATE
-     ============================================================ */
   const LANE_Y = () => GROUND_Y;
   const PLAYER_X = () => W * 0.28;
   const PLAYER_W = 34;
@@ -258,31 +252,29 @@
 
   let distance = 0;
   let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-  // localStorage may not persist inside Telegram WebView reliably; fallback handled by var if needed.
   document.getElementById('menu-best').textContent = `BEST: ${best}M`;
 
   let player = {
-    y: 0,        // offset above ground, 0 = standing on ground
+    y: 0,
     vy: 0,
     ducking: false,
-    state: 'run', // run | jump | duck
-    runCycle: 0   // 0..1, drives leg/arm swing while running
+    state: 'run',
+    runCycle: 0
   };
 
   const GRAVITY = 1700;
   const JUMP_VELOCITY = -620;
 
   let obstacles = [];
+  let coins = [];
+  let coinCount = 0;
   let spawnTimer = 0;
   let nextSpawnGap = 1.1;
+  let coinSpawnTimer = 0;
+  let nextCoinGap = 0.5;
 
   let groundOffset = 0;
 
-  /* ============================================================
-     OBSTACLE TYPES
-     low  -> must jump over (sits on ground)
-     high -> must duck under (hangs at head height)
-     ============================================================ */
   function spawnObstacle() {
     const type = Math.random() < 0.55 ? 'low' : 'high';
     const w = type === 'low' ? 30 + Math.random() * 14 : 46 + Math.random() * 14;
@@ -294,22 +286,46 @@
     });
   }
 
+  // Coins spawn in short arcs of 3-5, at a height reachable while running normally
+  // (never forces a jump/duck just to collect — collection is a bonus, not a requirement)
+  function spawnCoinArc() {
+    const count = 3 + Math.floor(Math.random() * 3);
+    const startX = W + 60;
+    const gap = 34;
+    // arc sits at chest height while standing, so normal running collects most of them
+    const baseY = GROUND_Y - PLAYER_H_STAND * 0.62;
+    const arcHeight = Math.random() < 0.4 ? 26 : 0; // sometimes a gentle rise/fall
+    for (let i = 0; i < count; i++) {
+      const t = i / (count - 1 || 1);
+      const arcOffset = arcHeight ? -Math.sin(t * Math.PI) * arcHeight : 0;
+      coins.push({
+        x: startX + i * gap,
+        y: baseY + arcOffset,
+        r: 9,
+        collected: false,
+        spin: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
   function resetGame() {
     distance = 0;
     speed = BASE_SPEED;
     obstacles = [];
+    coins = [];
+    coinCount = 0;
     spawnTimer = 0;
     nextSpawnGap = 1.3;
+    coinSpawnTimer = 0;
+    nextCoinGap = 0.9;
     player.y = 0;
     player.vy = 0;
     player.ducking = false;
     player.state = 'run';
     groundOffset = 0;
+    document.getElementById('hud-coins').textContent = '0';
   }
 
-  /* ============================================================
-     INPUT — swipe up = jump, swipe down = duck, tap = jump
-     ============================================================ */
   let touchStartY = null;
   let touchStartTime = 0;
 
@@ -365,9 +381,6 @@
     if (e.code === 'ArrowDown') endDuck();
   });
 
-  /* ============================================================
-     DRAWING
-     ============================================================ */
   function drawSky() {
     const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
     grad.addColorStop(0, '#16223D');
@@ -376,13 +389,11 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, GROUND_Y);
 
-    // sun/moon glow disc near horizon
     ctx.beginPath();
     ctx.arc(W * 0.78, GROUND_Y * 0.62, 34, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(232,199,102,0.85)';
     ctx.fill();
 
-    // distant temple silhouette
     ctx.fillStyle = 'rgba(26,15,10,0.55)';
     const baseX = W * 0.78, baseY = GROUND_Y * 0.62;
     ctx.beginPath();
@@ -408,7 +419,6 @@
     ctx.lineTo(W, GROUND_Y);
     ctx.stroke();
 
-    // scrolling path segments (gold dashes) to sell speed
     ctx.strokeStyle = 'rgba(212,160,23,0.18)';
     ctx.lineWidth = 3;
     const dashLen = 26, gapLen = 22, total = dashLen + gapLen;
@@ -422,13 +432,18 @@
     }
   }
 
+  /* ============================================================
+     PLAYER — detailed saint character
+     Robe with shading + hem trim, defined beard, proper staff
+     with ornamental top, draped beads, dhoti folds while running.
+     ============================================================ */
   function drawPlayer() {
     const x = PLAYER_X();
-    const state = player.state; // run | jump | duck
+    const state = player.state;
     const ducking = state === 'duck';
     const jumping = state === 'jump';
     const h = ducking ? PLAYER_H_DUCK : PLAYER_H_STAND;
-    const groundY = GROUND_Y - player.y; // feet line
+    const groundY = GROUND_Y - player.y;
     const topY = groundY - h;
 
     ctx.save();
@@ -436,135 +451,235 @@
     ctx.lineJoin = 'round';
 
     const robeColor = '#E8C766';
+    const robeShade = '#C9A24A';
+    const robeTrim = '#7A1F2B';
     const skinColor = '#D9A86C';
+    const skinShade = '#B9854F';
     const staffColor = '#8A5A2B';
+    const staffDark = '#5E3A18';
     const tilakColor = '#E8833A';
     const beadColor = '#7A1F2B';
+    const beadHighlight = '#9A3A48';
+    const beardColor = '#F0F0EC';
+    const beardShade = '#D8D8D0';
 
     if (ducking) {
-      // crouched figure: compact, low profile sliding under obstacles
       const cx = x, cy = topY + h * 0.5;
-      // robe (compact oval)
+
+      // staff trailing behind, drawn first so the body overlaps it
+      ctx.strokeStyle = staffColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - PLAYER_W * 0.55, cy + h * 0.32);
+      ctx.lineTo(cx - PLAYER_W * 1.1, cy - h * 0.08);
+      ctx.stroke();
+      ctx.fillStyle = staffDark;
+      ctx.beginPath();
+      ctx.arc(cx - PLAYER_W * 1.1, cy - h * 0.08, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // crouched robe body with simple shading
       ctx.fillStyle = robeColor;
       ctx.beginPath();
-      ctx.ellipse(cx, cy + h * 0.18, PLAYER_W * 0.62, h * 0.42, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy + h * 0.18, PLAYER_W * 0.64, h * 0.44, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = robeShade;
+      ctx.beginPath();
+      ctx.ellipse(cx + 4, cy + h * 0.3, PLAYER_W * 0.5, h * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // hem trim line
+      ctx.strokeStyle = robeTrim;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + h * 0.3, PLAYER_W * 0.55, h * 0.3, 0, 0.1, Math.PI - 0.1);
+      ctx.stroke();
+
+      // beads
+      ctx.fillStyle = beadColor;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.arc(cx + 5 + i * 3, cy - h * 0.05 + Math.abs(i) * 1.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // head, tucked low
       ctx.beginPath();
       ctx.fillStyle = skinColor;
-      ctx.arc(cx + 6, cy - h * 0.22, 8, 0, Math.PI * 2);
+      ctx.arc(cx + 6, cy - h * 0.24, 7.5, 0, Math.PI * 2);
       ctx.fill();
+
+      // short beard hint while ducking
+      ctx.fillStyle = beardColor;
+      ctx.beginPath();
+      ctx.ellipse(cx + 6, cy - h * 0.24 + 6, 5, 4, 0, 0, Math.PI);
+      ctx.fill();
+
       // tilak
       ctx.strokeStyle = tilakColor;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(cx + 6, cy - h * 0.22 - 7);
-      ctx.lineTo(cx + 6, cy - h * 0.22 - 2);
+      ctx.moveTo(cx + 6, cy - h * 0.24 - 6.5);
+      ctx.lineTo(cx + 6, cy - h * 0.24 - 1.5);
       ctx.stroke();
-      // trailing staff, dragged low
-      ctx.strokeStyle = staffColor;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx - PLAYER_W * 0.6, cy + h * 0.3);
-      ctx.lineTo(cx - PLAYER_W * 1.05, cy - h * 0.05);
-      ctx.stroke();
+
       ctx.restore();
       return;
     }
 
     // running / jumping figure with limbs
-    const cycle = player.runCycle; // 0..1
+    const cycle = player.runCycle;
     const swing = jumping ? 0.55 : Math.sin(cycle * Math.PI * 2);
     const swingBack = jumping ? -0.4 : Math.sin(cycle * Math.PI * 2 + Math.PI);
 
-    const headR = 10;
+    const headR = 10.5;
     const headCx = x;
-    const headCy = topY + headR + 1;
-    const shoulderY = headCy + headR + 3;
-    const hipY = shoulderY + h * 0.34;
+    const headCy = topY + headR + 4;
+    const shoulderY = headCy + headR + 4;
+    const hipY = shoulderY + h * 0.36;
     const legLen = groundY - hipY;
-    const armLen = h * 0.28;
 
-    // back leg
-    ctx.strokeStyle = robeColor;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(x, hipY);
-    if (jumping) {
-      ctx.lineTo(x - 9, hipY + legLen * 0.55);
-      ctx.lineTo(x - 13, hipY + legLen * 0.95);
-    } else {
-      ctx.lineTo(x + swingBack * 11, hipY + legLen * 0.6);
-      ctx.lineTo(x + swingBack * 15, groundY);
-    }
-    ctx.stroke();
-
-    // front leg
-    ctx.beginPath();
-    ctx.moveTo(x, hipY);
-    if (jumping) {
-      ctx.lineTo(x + 11, hipY + legLen * 0.5);
-      ctx.lineTo(x + 16, hipY + legLen * 0.85);
-    } else {
-      ctx.lineTo(x + swing * 11, hipY + legLen * 0.6);
-      ctx.lineTo(x + swing * 15, groundY);
-    }
-    ctx.stroke();
-
-    // robe body (torso), drawn over leg tops to hide joints
-    ctx.fillStyle = robeColor;
-    roundRect(x - PLAYER_W * 0.38, shoulderY - 2, PLAYER_W * 0.76, hipY - shoulderY + 10, 7);
-    ctx.fill();
-
-    // bead necklace across chest
-    ctx.fillStyle = beadColor;
-    const beadY = shoulderY + 6;
-    for (let i = -2; i <= 2; i++) {
+    // helper: draw a tapered limb segment as a filled shape (reads as a real limb, not a stick)
+    function limb(x0, y0, x1, y1, w0, w1, color) {
+      const dx = x1 - x0, dy = y1 - y0;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(x + i * 4.5, beadY + Math.abs(i) * 1.5, 2.1, 0, Math.PI * 2);
+      ctx.moveTo(x0 + nx * w0, y0 + ny * w0);
+      ctx.lineTo(x1 + nx * w1, y1 + ny * w1);
+      ctx.lineTo(x1 - nx * w1, y1 - ny * w1);
+      ctx.lineTo(x0 - nx * w0, y0 - ny * w0);
+      ctx.closePath();
       ctx.fill();
+      // rounded joints
+      ctx.beginPath(); ctx.arc(x0, y0, w0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x1, y1, w1, 0, Math.PI * 2); ctx.fill();
     }
 
-    // back arm (holds staff)
-    ctx.strokeStyle = skinColor;
-    ctx.lineWidth = 4.5;
+    // ---- back leg (thigh in robe shade, calf in skin tone) ----
+    let backKneeX, backKneeY, backFootX, backFootY;
+    if (jumping) {
+      backKneeX = x - 8; backKneeY = hipY + legLen * 0.52; backFootX = x - 12; backFootY = hipY + legLen * 0.92;
+    } else {
+      backKneeX = x + swingBack * 10; backKneeY = hipY + legLen * 0.58; backFootX = x + swingBack * 14; backFootY = groundY;
+    }
+    limb(x - 4, hipY, backKneeX, backKneeY, 7, 5.5, robeShade);
+    limb(backKneeX, backKneeY, backFootX, backFootY, 4.5, 3.4, skinShade);
+    // foot
+    ctx.fillStyle = skinShade;
+    ctx.beginPath(); ctx.ellipse(backFootX + (jumping ? -2 : swingBack*3), backFootY, 5.5, 3, 0, 0, Math.PI*2); ctx.fill();
+
+    // ---- front leg ----
+    let frontKneeX, frontKneeY, frontFootX, frontFootY;
+    if (jumping) {
+      frontKneeX = x + 10; frontKneeY = hipY + legLen * 0.48; frontFootX = x + 15; frontFootY = hipY + legLen * 0.82;
+    } else {
+      frontKneeX = x + swing * 10; frontKneeY = hipY + legLen * 0.58; frontFootX = x + swing * 14; frontFootY = groundY;
+    }
+    limb(x + 4, hipY, frontKneeX, frontKneeY, 7.2, 5.8, robeColor);
+    limb(frontKneeX, frontKneeY, frontFootX, frontFootY, 4.8, 3.6, skinColor);
+    ctx.fillStyle = skinColor;
+    ctx.beginPath(); ctx.ellipse(frontFootX + (jumping ? 2 : swing*3), frontFootY, 5.5, 3, 0, 0, Math.PI*2); ctx.fill();
+
+    // ---- torso: fuller, rounded, tapered waist-to-shoulders ----
+    ctx.fillStyle = robeColor;
     ctx.beginPath();
-    ctx.moveTo(x - 6, shoulderY + 4);
-    const backArmX = jumping ? x - 14 : x - 6 + swingBack * 8;
-    const backArmY = jumping ? shoulderY - 6 : shoulderY + 4 + Math.abs(swing) * 6;
-    ctx.lineTo(backArmX, backArmY);
+    ctx.moveTo(x - PLAYER_W * 0.46, shoulderY + 2);
+    ctx.quadraticCurveTo(x - PLAYER_W * 0.5, hipY - 4, x - PLAYER_W * 0.34, hipY + 6);
+    ctx.lineTo(x + PLAYER_W * 0.34, hipY + 6);
+    ctx.quadraticCurveTo(x + PLAYER_W * 0.5, hipY - 4, x + PLAYER_W * 0.46, shoulderY + 2);
+    ctx.quadraticCurveTo(x, shoulderY - 7, x - PLAYER_W * 0.46, shoulderY + 2);
+    ctx.closePath();
+    ctx.fill();
+    // shaded side panel for roundness
+    ctx.fillStyle = robeShade;
+    ctx.beginPath();
+    ctx.moveTo(x + 3, shoulderY + 3);
+    ctx.quadraticCurveTo(x + PLAYER_W * 0.42, hipY - 5, x + PLAYER_W * 0.36, hipY + 4);
+    ctx.lineTo(x + 8, hipY + 4);
+    ctx.quadraticCurveTo(x + 10, hipY - 6, x + 3, shoulderY + 3);
+    ctx.closePath();
+    ctx.fill();
+    // robe trim collar (v-neck)
+    ctx.strokeStyle = robeTrim;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(x - PLAYER_W * 0.3, shoulderY + 1);
+    ctx.lineTo(x, shoulderY + 10);
+    ctx.lineTo(x + PLAYER_W * 0.3, shoulderY + 1);
     ctx.stroke();
 
-    // staff, held by back arm, planted toward the ground behind
-    ctx.strokeStyle = staffColor;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(backArmX, backArmY);
-    ctx.lineTo(backArmX - 10, groundY + 2);
-    ctx.stroke();
+    // bead necklace, draped in a soft V across chest
+    ctx.fillStyle = beadColor;
+    const beadY = shoulderY + 8;
+    for (let i = -3; i <= 3; i++) {
+      const dip = (3 - Math.abs(i)) * 1.8;
+      ctx.beginPath();
+      ctx.arc(x + i * 3.6, beadY + dip, 2, 0, Math.PI * 2);
+      ctx.fill();
+      if (i % 2 === 0) {
+        ctx.fillStyle = beadHighlight;
+        ctx.beginPath();
+        ctx.arc(x + i * 3.6 - 0.6, beadY + dip - 0.6, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = beadColor;
+      }
+    }
 
-    // front arm
-    ctx.strokeStyle = skinColor;
-    ctx.lineWidth = 4.5;
-    ctx.beginPath();
-    ctx.moveTo(x + 6, shoulderY + 4);
-    const frontArmX = jumping ? x + 13 : x + 6 + swing * 8;
-    const frontArmY = jumping ? shoulderY - 4 : shoulderY + 4 + Math.abs(swingBack) * 6;
-    ctx.lineTo(frontArmX, frontArmY);
-    ctx.stroke();
+    // ---- arms: bare, tapered, swinging naturally with the run cycle ----
+    let backHandX, backHandY;
+    if (jumping) { backHandX = x - 13; backHandY = shoulderY - 4; }
+    else { backHandX = x - 6 + swingBack * 9; backHandY = shoulderY + 14 + Math.abs(swing) * 5; }
+    limb(x - 5, shoulderY + 4, backHandX, backHandY, 4.6, 3.4, skinShade);
 
-    // head
+    let frontHandX, frontHandY;
+    if (jumping) { frontHandX = x + 14; frontHandY = shoulderY - 2; }
+    else { frontHandX = x + 6 + swing * 9; frontHandY = shoulderY + 14 + Math.abs(swingBack) * 5; }
+    limb(x + 5, shoulderY + 4, frontHandX, frontHandY, 4.8, 3.6, skinColor);
+
+    // head, with shaded side for roundness
     ctx.beginPath();
     ctx.fillStyle = skinColor;
     ctx.arc(headCx, headCy, headR, 0, Math.PI * 2);
     ctx.fill();
-
-    // tilak mark on forehead
-    ctx.strokeStyle = tilakColor;
-    ctx.lineWidth = 2;
+    ctx.fillStyle = skinShade;
     ctx.beginPath();
-    ctx.moveTo(headCx, headCy - headR + 2);
-    ctx.lineTo(headCx, headCy - 2);
+    ctx.arc(headCx + 4, headCy + 1, headR * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+    // re-cover with base tone on the front-facing side so only a thin shade rim shows
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(headCx + 1, headCy, headR * 0.86, 0, Math.PI * 2);
+    ctx.fill();
+
+    // flowing white beard
+    ctx.fillStyle = beardColor;
+    ctx.beginPath();
+    ctx.moveTo(headCx - headR * 0.7, headCy + headR * 0.25);
+    ctx.quadraticCurveTo(headCx - 1, headCy + headR * 1.9, headCx + headR * 0.55, headCy + headR * 0.9);
+    ctx.quadraticCurveTo(headCx + headR * 0.3, headCy + headR * 0.5, headCx - headR * 0.7, headCy + headR * 0.25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = beardShade;
+    ctx.beginPath();
+    ctx.moveTo(headCx - headR * 0.2, headCy + headR * 0.6);
+    ctx.quadraticCurveTo(headCx + 2, headCy + headR * 1.6, headCx + headR * 0.45, headCy + headR * 0.85);
+    ctx.quadraticCurveTo(headCx + headR * 0.2, headCy + headR * 0.65, headCx - headR * 0.2, headCy + headR * 0.6);
+    ctx.closePath();
+    ctx.fill();
+
+    // tilak mark on forehead — thicker, more deliberate
+    ctx.strokeStyle = tilakColor;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(headCx, headCy - headR + 1);
+    ctx.lineTo(headCx, headCy - 1);
+    ctx.stroke();
+    ctx.strokeStyle = beadColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(headCx - 2, headCy - headR + 3);
+    ctx.lineTo(headCx - 2, headCy - 2);
     ctx.stroke();
 
     ctx.restore();
@@ -590,9 +705,25 @@
     ctx.stroke();
   }
 
-  /* ============================================================
-     COLLISION
-     ============================================================ */
+  function drawCoin(c) {
+    if (c.collected) return;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    // gentle spin effect by squashing horizontally based on a phase value
+    const squash = Math.cos(c.spin);
+    ctx.scale(Math.max(0.25, Math.abs(squash)), 1);
+    ctx.beginPath();
+    ctx.arc(0, 0, c.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#D4A017';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, c.r * 0.62, 0, Math.PI * 2);
+    ctx.strokeStyle = '#7A1F2B';
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function getPlayerBox() {
     const x = PLAYER_X();
     const ducking = player.state === 'duck';
@@ -610,25 +741,19 @@
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
-  /* ============================================================
-     MAIN LOOP
-     ============================================================ */
   function update(dt) {
     speed = Math.min(MAX_SPEED, BASE_SPEED + distance * 0.6);
     distance += speed * dt * 0.05;
     groundOffset += speed * dt;
 
-    // physics
     player.vy += GRAVITY * dt;
     player.y -= player.vy * dt;
     if (player.y < 0) { player.y = 0; player.vy = 0; if (player.state === 'jump') player.state = 'run'; }
 
-    // run-cycle animation (legs/arms swing), tied to speed, paused while jumping
     if (player.state === 'run') {
       player.runCycle = (player.runCycle + dt * (2.2 + speed / 260)) % 1;
     }
 
-    // spawn
     spawnTimer += dt;
     if (spawnTimer >= nextSpawnGap) {
       spawnTimer = 0;
@@ -636,7 +761,13 @@
       spawnObstacle();
     }
 
-    // move obstacles
+    coinSpawnTimer += dt;
+    if (coinSpawnTimer >= nextCoinGap) {
+      coinSpawnTimer = 0;
+      nextCoinGap = 1.1 + Math.random() * 1.2;
+      spawnCoinArc();
+    }
+
     const playerBox = getPlayerBox();
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
@@ -648,6 +779,23 @@
       }
     }
 
+    for (let i = coins.length - 1; i >= 0; i--) {
+      const c = coins[i];
+      c.x -= speed * dt;
+      c.spin += dt * 6;
+      if (c.x < -20) { coins.splice(i, 1); continue; }
+      if (!c.collected) {
+        const cBox = { x: c.x - c.r, y: c.y - c.r, w: c.r * 2, h: c.r * 2 };
+        if (intersects(playerBox, cBox)) {
+          c.collected = true;
+          coinCount++;
+          document.getElementById('hud-coins').textContent = coinCount;
+          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+      }
+    }
+    coins = coins.filter(c => !c.collected || c.x > -20);
+
     document.getElementById('hud-score').textContent = Math.floor(distance);
   }
 
@@ -656,6 +804,7 @@
     drawSky();
     drawGround();
     obstacles.forEach(drawObstacle);
+    coins.forEach(drawCoin);
     drawPlayer();
   }
 
@@ -701,15 +850,13 @@
 
     document.getElementById('result-score').textContent = finalScore;
     document.getElementById('result-best').innerHTML = `Best: <strong>${best}m</strong>`;
+    document.getElementById('result-coins').innerHTML = `Coins gathered: <strong>${coinCount}</strong>`;
     document.getElementById('menu-best').textContent = `BEST: ${best}M`;
 
     if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
     showScreen('screen-result');
   }
 
-  /* ============================================================
-     SCREEN MANAGEMENT
-     ============================================================ */
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     if (id !== 'none') document.getElementById(id).classList.add('active');
@@ -719,7 +866,6 @@
   document.getElementById('btn-retry').addEventListener('click', startRun);
   document.getElementById('btn-menu').addEventListener('click', () => showScreen('screen-menu'));
 
-  // initial static render behind menu
   render();
 })();
 </script>
