@@ -5,107 +5,604 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>$BAWALIYA</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --maroon: #7A1F2B;
-    --gold: #D4A017;
-    --gold-soft: #E8C766;
-    --bg: #1A0F0A;
-    --bg-raised: #241510;
-    --parchment: #F5E6C8;
-    --flame: #E8833A;
-    --line: rgba(212, 160, 23, 0.18);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: radial-gradient(ellipse at top, #2A1810 0%, var(--bg) 60%);
-    color: var(--parchment);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 28px 18px;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .serif { font-family: 'Georgia', 'Iowan Old Style', serif; }
-
-  .stage { width: 100%; max-width: 420px; }
-
-  .symbol { font-size: 38px; text-align: center; margin-bottom: 12px; }
-  h1.title { font-size: 24px; text-align: center; color: var(--gold-soft); margin-bottom: 6px; font-weight: 400; }
-  .subtitle { text-align: center; font-size: 13px; color: rgba(245,230,200,0.6); line-height: 1.6; margin-bottom: 30px; padding: 0 10px; }
-
-  .card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: var(--bg-raised);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 14px;
-    cursor: pointer;
-    transition: border-color 0.2s ease, transform 0.15s ease;
-    text-decoration: none;
-    color: var(--parchment);
+:root {
+  --bg:        #0A0812;
+  --bg-card:   #12101F;
+  --bg-lift:   #1A1630;
+  --bg-glass:  rgba(18,16,31,0.85);
+  --gold:      #F0B429;
+  --gold-dim:  #C8921A;
+  --gold-pale: #F5D98A;
+  --gold-glow: rgba(240,180,41,0.2);
+  --flame:     #E8833A;
+  --maroon:    #8B1A2B;
+  --parchment: #F5E6C8;
+  --muted:     rgba(245,230,200,0.5);
+  --line:      rgba(240,180,41,0.12);
+  --line-bright: rgba(240,180,41,0.3);
 }
-  .card:hover { border-color: var(--gold); }
-  .card:active { transform: scale(0.98); }
 
-  .card-icon {
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: rgba(212,160,23,0.1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-  }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 
-  .card-title { font-size: 15.5px; font-weight: 600; margin-bottom: 3px; }
-  .card-desc { font-size: 12.5px; color: rgba(245,230,200,0.55); line-height: 1.4; }
+html,body{
+  background:var(--bg);
+  color:var(--parchment);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
 
-  footer.brandmark {
-    text-align: center;
-    font-size: 11px;
-    color: rgba(245,230,200,0.3);
-    margin-top: 24px;
-    letter-spacing: 0.5px;
-  }
+/* ── PARTICLE CANVAS ── */
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* ── PAGE WRAPPER ── */
+.page{position:relative;z-index:1;max-width:480px;margin:0 auto;padding-bottom:40px;}
+
+/* ══════════════════════════════
+   TOP NAV BAR
+══════════════════════════════ */
+.navbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;
+  background:rgba(10,8,18,0.95);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(12px);
+}
+
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+}
+.nav-logo-img{
+  width:34px;height:34px;border-radius:50%;
+  object-fit:cover;
+  border:2px solid var(--gold);
+  box-shadow:0 0 12px rgba(240,180,41,0.4);
+}
+.nav-logo-text{
+  font-family:'Cinzel',serif;
+  font-size:15px;font-weight:700;
+  color:var(--gold);
+  letter-spacing:0.5px;
+}
+
+.nav-actions{display:flex;align-items:center;gap:8px;}
+.nav-btn{
+  font-family:'Inter',sans-serif;
+  font-size:11px;font-weight:600;
+  letter-spacing:0.3px;
+  padding:7px 12px;
+  border-radius:8px;
+  border:none;cursor:pointer;
+  text-decoration:none;
+  display:flex;align-items:center;gap:5px;
+  transition:all 0.2s ease;
+}
+.nav-btn-tg{
+  background:rgba(36,161,222,0.15);
+  border:1px solid rgba(36,161,222,0.4);
+  color:#48c9f0;
+}
+.nav-btn-tg:hover{background:rgba(36,161,222,0.25);}
+.nav-btn-x{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#e0e0e0;
+}
+.nav-btn-x:hover{background:rgba(255,255,255,0.12);}
+
+/* ══════════════════════════════
+   HERO SECTION
+══════════════════════════════ */
+.hero{
+  position:relative;
+  min-height:420px;
+  overflow:hidden;
+  display:flex;align-items:flex-end;
+}
+
+/* Full bleed image */
+.hero-img{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:center top;
+  z-index:0;
+}
+
+/* Cinematic gradient overlays */
+.hero-overlay-top{
+  position:absolute;top:0;left:0;right:0;height:120px;
+  background:linear-gradient(to bottom,rgba(10,8,18,0.85),transparent);
+  z-index:1;
+}
+.hero-overlay-bottom{
+  position:absolute;bottom:0;left:0;right:0;height:60%;
+  background:linear-gradient(to top,
+    rgba(10,8,18,1) 0%,
+    rgba(10,8,18,0.92) 25%,
+    rgba(10,8,18,0.6) 55%,
+    transparent 100%);
+  z-index:1;
+}
+.hero-overlay-sides{
+  position:absolute;inset:0;
+  background:linear-gradient(to right,
+    rgba(10,8,18,0.45) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(10,8,18,0.45) 100%);
+  z-index:1;
+}
+
+/* Golden ambient glow from center */
+.hero-glow{
+  position:absolute;
+  bottom:30%;left:50%;transform:translateX(-50%);
+  width:280px;height:280px;
+  background:radial-gradient(circle,rgba(240,180,41,0.12) 0%,rgba(232,131,58,0.06) 40%,transparent 70%);
+  z-index:2;
+  animation:heroGlow 5s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes heroGlow{
+  0%,100%{opacity:0.6;transform:translateX(-50%) scale(1);}
+  50%{opacity:1;transform:translateX(-50%) scale(1.15);}
+}
+
+/* Hero text content */
+.hero-content{
+  position:relative;z-index:3;
+  padding:0 22px 28px;
+  width:100%;
+}
+.hero-eyebrow{
+  font-size:9px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--flame);font-weight:700;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.hero-eyebrow::before{content:'';width:20px;height:1px;background:var(--flame);}
+
+.hero-title{
+  font-family:'Cinzel',serif;
+  font-size:28px;font-weight:700;
+  color:#fff;
+  line-height:1.18;
+  margin-bottom:6px;
+  text-shadow:0 2px 20px rgba(0,0,0,0.6);
+}
+.hero-title .gold{
+  color:var(--gold);
+  text-shadow:0 0 30px rgba(240,180,41,0.5);
+}
+
+.hero-subtitle{
+  font-size:13px;color:var(--muted);
+  line-height:1.6;margin-bottom:20px;max-width:300px;
+}
+.hero-subtitle strong{color:var(--parchment);font-weight:500;}
+
+/* CTA buttons row */
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;}
+
+.cta-primary{
+  display:flex;align-items:center;gap:7px;
+  background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+  color:#0A0812;
+  font-size:13px;font-weight:700;
+  letter-spacing:0.3px;
+  padding:12px 20px;
+  border-radius:10px;
+  text-decoration:none;
+  border:none;cursor:pointer;
+  box-shadow:0 4px 20px rgba(240,180,41,0.3);
+  transition:all 0.2s ease;
+  flex:1;justify-content:center;
+}
+.cta-primary:active{transform:scale(0.97);}
+.cta-primary:hover{box-shadow:0 6px 28px rgba(240,180,41,0.45);}
+
+.cta-secondary{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(36,161,222,0.15);
+  color:#48c9f0;
+  font-size:13px;font-weight:600;
+  padding:12px 20px;
+  border-radius:10px;
+  border:1px solid rgba(36,161,222,0.35);
+  text-decoration:none;cursor:pointer;
+  transition:all 0.2s ease;
+  flex:1;justify-content:center;
+}
+.cta-secondary:active{transform:scale(0.97);}
+
+/* ══════════════════════════════
+   STATS STRIP
+══════════════════════════════ */
+.stats-strip{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  background:var(--bg-lift);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.stat-cell{
+  padding:14px 6px;text-align:center;
+  border-right:1px solid var(--line);
+}
+.stat-cell:last-child{border-right:none;}
+.stat-label{
+  font-size:8px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px;
+  display:flex;align-items:center;justify-content:center;gap:3px;
+}
+.stat-value{
+  font-size:11.5px;font-weight:700;
+  color:var(--gold);letter-spacing:0.2px;
+  white-space:nowrap;
+}
+.stat-cell.highlight .stat-value{color:#48c9f0;}
+.stat-cell.highlight2 .stat-value{color:#a78bfa;}
+
+/* ══════════════════════════════
+   WALK THE PROPHECY
+══════════════════════════════ */
+.section{padding:24px 18px 8px;}
+
+.section-header{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:16px;
+}
+.section-tag{
+  font-size:8.5px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--flame);font-weight:700;
+  padding:4px 10px;
+  background:rgba(232,131,58,0.1);
+  border:1px solid rgba(232,131,58,0.2);
+  border-radius:99px;
+}
+.section-line{flex:1;height:1px;background:var(--line);}
+
+/* Game card grid — 3 columns for smaller screens, matches Image 5 layout */
+.game-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.game-card{
+  display:flex;flex-direction:column;
+  text-decoration:none;
+  background:var(--bg-card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  transition:all 0.2s ease;
+  animation:cardIn 0.5s ease both;
+  position:relative;
+}
+.game-card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(240,180,41,0.04),transparent);
+  opacity:0;transition:opacity 0.25s ease;border-radius:14px;
+}
+.game-card:hover::after,.game-card:active::after{opacity:1;}
+.game-card:active{transform:scale(0.97);}
+.game-card:hover{border-color:var(--line-bright);box-shadow:0 4px 20px rgba(240,180,41,0.1);}
+.game-card:nth-child(1){animation-delay:0.05s;}
+.game-card:nth-child(2){animation-delay:0.1s;}
+.game-card:nth-child(3){animation-delay:0.15s;}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+/* Card icon area */
+.card-icon-area{
+  height:80px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(240,180,41,0.05);
+  border-bottom:1px solid var(--line);
+  font-size:36px;
+  position:relative;
+  overflow:hidden;
+}
+.card-icon-area::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center,rgba(240,180,41,0.08),transparent 70%);
+}
+
+.card-body{padding:12px 10px 14px;}
+.card-name{
+  font-size:11px;font-weight:700;
+  color:var(--parchment);
+  margin-bottom:4px;letter-spacing:0.1px;
+  line-height:1.3;
+}
+.card-desc{font-size:9.5px;color:var(--muted);line-height:1.4;margin-bottom:10px;}
+.card-play{
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+  color:#0A0812;
+  font-size:9.5px;font-weight:800;
+  letter-spacing:0.8px;text-transform:uppercase;
+  padding:6px 10px;
+  border-radius:7px;
+  width:100%;
+  box-shadow:0 2px 8px rgba(240,180,41,0.25);
+}
+
+/* ══════════════════════════════
+   FAIR LAUNCH SECTION
+══════════════════════════════ */
+.fair-section{padding:8px 18px 16px;}
+
+.fair-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.fair-chip{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(139,26,43,0.12);
+  border:1px solid rgba(139,26,43,0.3);
+  border-radius:10px;padding:11px 13px;
+  font-size:12px;color:var(--parchment);
+}
+.fair-chip .x-icon{
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(139,26,43,0.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#ff6b6b;font-weight:700;flex-shrink:0;
+}
+
+.scam-warn{
+  background:rgba(240,180,41,0.05);
+  border:1px solid rgba(240,180,41,0.18);
+  border-left:3px solid var(--gold);
+  border-radius:8px;padding:11px 13px;
+  font-size:11px;color:var(--muted);line-height:1.55;
+}
+.scam-warn strong{color:var(--gold);}
+
+/* ══════════════════════════════
+   FOOTER SOCIAL
+══════════════════════════════ */
+.footer-social{
+  display:flex;gap:10px;
+  padding:12px 18px 8px;
+}
+.soc-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  text-decoration:none;
+  background:var(--bg-lift);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 12px;
+  font-size:13px;font-weight:600;color:var(--parchment);
+  transition:all 0.2s ease;
+}
+.soc-btn:hover{border-color:var(--line-bright);box-shadow:0 2px 14px var(--gold-glow);}
+.soc-btn:active{transform:scale(0.97);}
+
+.footer-brand{
+  text-align:center;
+  font-size:10px;color:rgba(245,230,200,0.2);
+  letter-spacing:1.5px;padding:16px 20px 8px;
+}
 </style>
 </head>
 <body>
 
-<div class="stage">
-  <div class="symbol">🪔</div>
-  <h1 class="title serif">The Bawaliya Path</h1>
-  <p class="subtitle">Choose how you'd like to walk with the prophecy today.</p>
+<canvas id="particles"></canvas>
 
-  <a class="card" href="index.html">
-    <div class="card-icon">🔮</div>
-    <div>
-      <div class="card-title">The Prophecy Quiz</div>
-      <div class="card-desc">Test what you know of the saint, the temple, and the lineage it foretold.</div>
+<div class="page">
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="navbar">
+    <div class="nav-logo">
+      <img class="nav-logo-img" src="assets/ChatGPT_Image_Jul_1_2026_12_33_19_PM.png" alt="Bawaliya" onerror="this.style.display='none'">
+      <span class="nav-logo-text">$BAWALIYA</span>
     </div>
-  </a>
-
-  <a class="card" href="runner.html">
-    <div class="card-icon">🪔</div>
-    <div>
-      <div class="card-title">Path to the Temple</div>
-      <div class="card-desc">Run the devotee's road. Dodge what blocks the way. See how far faith carries you.</div>
+    <div class="nav-actions">
+      <a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="nav-btn nav-btn-x">
+        𝕏 Follow
+      </a>
+      <a href="#" target="_blank" rel="noopener" class="nav-btn nav-btn-tg">
+        💬 Telegram
+      </a>
     </div>
-  </a>
+  </nav>
 
-  <footer class="brandmark serif">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+  <!-- ══ HERO ══ -->
+  <section class="hero">
+    <img
+      class="hero-img"
+      src="assets/ChatGPT_Image_May_31_2026_04_18_26_PM.png"
+      alt="The Bawaliya Saint"
+      onerror="this.style.background='linear-gradient(160deg,#1a0a0a,#0a0812)'"
+    >
+    <div class="hero-overlay-top"></div>
+    <div class="hero-overlay-bottom"></div>
+    <div class="hero-overlay-sides"></div>
+    <div class="hero-glow"></div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">THE LEGEND IS NOW ON-CHAIN</div>
+      <h1 class="hero-title">
+        The saint who predicted<br>
+        India's greatest empire.<br>
+        <span class="gold">Now on-chain.</span>
+      </h1>
+      <p class="hero-subtitle">
+        A name whispered through generations. A blessing that sparked empires.
+        <strong>From legend to liquidity.</strong>
+      </p>
+      <div class="hero-cta">
+        <a href="runner.html" class="cta-primary">
+          🎮 Play Game
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="cta-secondary">
+          💬 Join Telegram
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ STATS STRIP ══ -->
+  <div class="stats-strip">
+    <div class="stat-cell">
+      <div class="stat-label">📅 Launch</div>
+      <div class="stat-value">Dec 1<br><span style="font-size:9px;color:var(--gold-pale)">2026</span></div>
+    </div>
+    <div class="stat-cell highlight">
+      <div class="stat-label">🌐 Network</div>
+      <div class="stat-value" style="color:#9945FF">Solana</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">🚀 Platform</div>
+      <div class="stat-value" style="color:#48c9f0">pump.fun</div>
+    </div>
+    <div class="stat-cell highlight2">
+      <div class="stat-label">🪙 Supply</div>
+      <div class="stat-value">1B</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">💸 Tax</div>
+      <div class="stat-value" style="color:#4ade80">0%</div>
+    </div>
+  </div>
+
+  <!-- ══ GAME CARDS ══ -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-tag">✦ Walk the Prophecy</div>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="game-grid">
+
+      <a href="index.html" class="game-card">
+        <div class="card-icon-area">🔮</div>
+        <div class="card-body">
+          <div class="card-name">The Prophecy Quiz</div>
+          <div class="card-desc">Test how deeply you know the saint's word</div>
+          <div class="card-play">Play Now →</div>
+        </div>
+      </a>
+
+      <a href="runner.html" class="game-card">
+        <div class="card-icon-area">🏃</div>
+        <div class="card-body">
+          <div class="card-name">Path to the Temple</div>
+          <div class="card-desc">Run the saint's road, dodge what blocks the way</div>
+          <div class="card-play">Play Now →</div>
+        </div>
+      </a>
+
+      <a href="fruitcut.html" class="game-card">
+        <div class="card-icon-area">🫐</div>
+        <div class="card-body">
+          <div class="card-name">Prasad Cutting</div>
+          <div class="card-desc">Slice the offerings, dodge the thorn</div>
+          <div class="card-play">Play Now →</div>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ══ FAIR LAUNCH ══ -->
+  <div class="fair-section">
+    <div class="section-header">
+      <div class="section-tag">🛡️ Fair Launch Promise</div>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="fair-grid">
+      <div class="fair-chip"><div class="x-icon">✕</div> No presale</div>
+      <div class="fair-chip"><div class="x-icon">✕</div> No private sale</div>
+      <div class="fair-chip"><div class="x-icon">✕</div> No early CA</div>
+      <div class="fair-chip"><div class="x-icon">✕</div> No insider access</div>
+    </div>
+
+    <div class="scam-warn">
+      ⚠️ <strong>Scam alert:</strong> Any DM claiming to offer a contract address before launch is fraudulent. The only official CA will be announced on our verified X and Telegram.
+    </div>
+  </div>
+
+  <!-- ══ SOCIAL BUTTONS ══ -->
+  <div class="footer-social">
+    <a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="soc-btn">
+      <span>𝕏</span> Follow on X
+    </a>
+    <a href="#" target="_blank" rel="noopener" class="soc-btn">
+      <span>💬</span> Join Telegram
+    </a>
+  </div>
+
+  <div class="footer-brand">$BAWALIYA &middot; DEC 1, 2026 &middot; PUMP.FUN &middot; SOLANA</div>
 </div>
 
 <script>
+(function(){
   const tg = window.Telegram?.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
+  if(tg){ tg.ready(); tg.expand(); }
+
+  /* ── Particle system ── */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const GOLD  = [240,180,41];
+  const FLAME = [232,131,58];
+  const WHITE = [255,240,200];
+  const particles = [];
+  const COUNT = 35;
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+
+  for(let i=0;i<COUNT;i++){
+    const col = Math.random()<0.5 ? GOLD : Math.random()<0.5 ? FLAME : WHITE;
+    particles.push({
+      x: rand(0,1), y: rand(0,1),
+      vy: rand(-0.15,-0.05),
+      vx: rand(-0.02,0.02),
+      size: rand(0.8,2.5),
+      alpha: rand(0.2,0.8),
+      fade: rand(0.002,0.006),
+      color: col
+    });
+  }
+
+  function resetParticle(p){
+    p.x = rand(0.1,0.9);
+    p.y = 1.05;
+    p.vy = rand(-0.15,-0.05);
+    p.vx = rand(-0.02,0.02);
+    p.alpha = rand(0.3,0.8);
+    p.size = rand(0.8,2.5);
+  }
+
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    for(const p of particles){
+      p.y += p.vy * 0.016;
+      p.x += p.vx * 0.016;
+      p.alpha -= p.fade;
+      if(p.alpha <= 0 || p.y < -0.02){ resetParticle(p); continue; }
+      const [r,g,b] = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x*W, p.y*H, p.size, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${p.alpha})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
 </script>
 </body>
 </html>
