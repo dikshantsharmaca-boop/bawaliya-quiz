@@ -187,3 +187,54 @@ html,body{background:var(--bg);color:var(--parchment);font-family:'Inter',sans-s
 </script>
 </body>
 </html>
+python3 << 'PYEOF'
+with open('/tmp/home_v2.html', 'r') as f:
+    html = f.read()
+
+# ── CHANGE 1: Remove hero CTA buttons from hero section ──
+# Find and remove the hero-cta div (Play Game + Join Telegram buttons in hero)
+old_hero_cta = '''      <div class="hero-cta">
+        <a href="runner.html" class="cta-primary">&#127918; Play Game</a>
+        <a href="#" target="_blank" rel="noopener" class="cta-secondary">&#128172; Join Telegram</a>
+      </div>'''
+html = html.replace(old_hero_cta, '', 1)
+print("hero-cta removed:", old_hero_cta not in html)
+
+# ── CHANGE 2: Update nav Telegram button with real link ──
+old_nav_tg = '<a href="#" target="_blank" rel="noopener" class="nav-btn nav-btn-tg">&#128172; Telegram</a>'
+new_nav_tg = '<a href="https://t.me/BawaliyaBabaCOMMUNITY" target="_blank" rel="noopener" class="nav-btn nav-btn-tg">&#128172; Telegram</a>'
+html = html.replace(old_nav_tg, new_nav_tg, 1)
+print("nav tg updated:", 'BawaliyaBabaCOMMUNITY' in html)
+
+# ── CHANGE 3: Update nav X button with real link ──
+old_nav_x = '<a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="nav-btn nav-btn-x">&#120143; Follow</a>'
+new_nav_x = '<a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="nav-btn nav-btn-x">&#120143; Follow</a>'
+html = html.replace(old_nav_x, new_nav_x, 1)
+
+# ── CHANGE 4: Add Play Game button ABOVE game cards ──
+old_game_section = '''  <div class="section">
+    <div class="section-header"><div class="section-tag">&#10022; Walk the Prophecy</div><div class="section-line"></div></div>
+    <div class="game-grid">'''
+
+new_game_section = '''  <div class="section">
+    <div class="section-header"><div class="section-tag">&#10022; Walk the Prophecy</div><div class="section-line"></div></div>
+    <a href="runner.html" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#F0B429,#C8921A);color:#0A0812;font-size:14px;font-weight:700;letter-spacing:0.4px;padding:14px 20px;border-radius:12px;text-decoration:none;margin-bottom:14px;box-shadow:0 4px 20px rgba(240,180,41,0.3);">&#127918; Play Game</a>
+    <div class="game-grid">'''
+
+html = html.replace(old_game_section, new_game_section, 1)
+print("play game button added above cards:", 'Play Game</a>' in html)
+
+# ── CHANGE 5: Update footer social buttons with real links ──
+old_footer_x = '<a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="soc-btn"><span>&#120143;</span> Follow on X</a>'
+new_footer_x = '<a href="https://x.com/Bawaliya_baba" target="_blank" rel="noopener" class="soc-btn"><span>&#120143;</span> Follow on X</a>'
+html = html.replace(old_footer_x, new_footer_x, 1)
+
+old_footer_tg = '<a href="#" target="_blank" rel="noopener" class="soc-btn"><span>&#128172;</span> Join Telegram</a>'
+new_footer_tg = '<a href="https://t.me/BawaliyaBabaCOMMUNITY" target="_blank" rel="noopener" class="soc-btn"><span>&#128172;</span> Join Telegram</a>'
+html = html.replace(old_footer_tg, new_footer_tg, 1)
+print("footer tg updated:", html.count('BawaliyaBabaCOMMUNITY'))
+
+with open('/tmp/home_v2.html', 'w') as f:
+    f.write(html)
+print("DONE, size:", len(html))
+PYEOF
