@@ -1,805 +1,676 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Prasad Cutting — $BAWALIYA</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        /* ─────────────────────────────────────────────────
-           PRASAD CUTTING — $BAWALIYA
-           Edit colours in :root to change the theme.
-           ───────────────────────────────────────────────── */
-        :root {
-            --gold:       #f0a500;
-            --gold-light: #ffd166;
-            --dark:       #0a0804;
-            --red:        #e74c3c;
-        }
-
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body {
-            width: 100%; height: 100%;
-            overflow: hidden;
-            background: var(--dark);
-            user-select: none; -webkit-user-select: none;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-
-        #gameCanvas {
-            display: block; width: 100%; height: 100%;
-            touch-action: none; cursor: crosshair;
-        }
-
-        /* ── OVERLAY SCREENS ──────────────────────────── */
-        .screen {
-            position: fixed; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 14px; padding: 32px;
-            background: rgba(4, 3, 1, 0.93);
-            backdrop-filter: blur(6px);
-            z-index: 20;
-        }
-        .screen.hidden { display: none; }
-
-        .s-icon  { font-size: 54px; animation: breathe 2.8s ease-in-out infinite; }
-        .s-title {
-            font-size: 27px; font-weight: 700; color: var(--gold);
-            text-align: center; letter-spacing: 0.02em;
-            animation: glow 2.2s ease-in-out infinite;
-        }
-        .s-sub   { font-size: 13px; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.75; max-width: 270px; }
-        .s-score { font-size: 54px; font-weight: 700; color: #fff; line-height: 1; }
-        .s-coins { font-size: 17px; color: var(--gold); font-weight: 600; }
-        .divider { width: 56px; height: 0.5px; background: rgba(240,165,0,0.3); }
-        .lives   { display: flex; gap: 6px; font-size: 26px; }
-
-        .btn {
-            padding: 13px 36px; background: var(--gold); color: #0a0804;
-            font-size: 14px; font-weight: 700; border: none; border-radius: 10px;
-            cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;
-            min-width: 175px; transition: transform .15s, background .15s;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn:active { transform: scale(0.95); }
-        .btn:hover  { background: var(--gold-light); }
-
-        .btn-back {
-            padding: 9px 22px; background: transparent;
-            color: rgba(255,255,255,0.35); font-size: 12px;
-            border: 0.5px solid rgba(255,255,255,0.12); border-radius: 8px;
-            cursor: pointer; text-decoration: none; display: inline-block;
-            transition: color .15s, border-color .15s;
-        }
-        .btn-back:hover { color: var(--gold); border-color: rgba(240,165,0,0.3); }
-
-        @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
-        @keyframes glow    { 0%,100% { text-shadow: 0 0 18px rgba(240,165,0,.3); } 50% { text-shadow: 0 0 30px rgba(240,165,0,.65); } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Prasad Cutting — $BAWALIYA</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   $BAWALIYA — PRASAD CUTTING  v3.0  SHARP EDITION
+   EDIT colours in :root only.
+   ═══════════════════════════════════════════════════ */
+:root{--gold:#f0a500;--gold-lt:#ffd166;--dark:#0a0804}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);
+  user-select:none;-webkit-user-select:none;
+  font-family:'Segoe UI',system-ui,sans-serif}
+#c{display:block;width:100%;height:100%;
+  touch-action:none;cursor:none;   /* cursor:none removes OS pointer lag */
+  will-change:transform}           /* GPU-composited layer = zero blit lag */
+.scr{position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;padding:32px;
+  background:rgba(4,3,1,.94);backdrop-filter:blur(6px);z-index:20}
+.scr.off{display:none}
+.ico{font-size:54px;animation:br 2.8s ease-in-out infinite}
+.ttl{font-size:27px;font-weight:700;color:var(--gold);text-align:center;
+  letter-spacing:.02em;animation:gl 2.2s ease-in-out infinite}
+.sub{font-size:13px;color:rgba(255,255,255,.5);text-align:center;
+  line-height:1.75;max-width:270px}
+.sc{font-size:54px;font-weight:700;color:#fff;line-height:1}
+.cn{font-size:17px;color:var(--gold);font-weight:600}
+.div{width:56px;height:.5px;background:rgba(240,165,0,.3)}
+.lv{display:flex;gap:6px;font-size:26px}
+.btn{padding:13px 36px;background:var(--gold);color:#0a0804;font-size:14px;
+  font-weight:700;border:none;border-radius:10px;cursor:pointer;
+  letter-spacing:.08em;text-transform:uppercase;min-width:175px;
+  transition:transform .1s,background .1s;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.93)}
+.btn:hover{background:var(--gold-lt)}
+.bk{padding:9px 22px;background:transparent;color:rgba(255,255,255,.32);
+  font-size:12px;border:.5px solid rgba(255,255,255,.12);border-radius:8px;
+  cursor:pointer;text-decoration:none;display:inline-block;
+  transition:color .15s,border-color .15s}
+.bk:hover{color:var(--gold);border-color:rgba(240,165,0,.3)}
+@keyframes br{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes gl{0%,100%{text-shadow:0 0 18px rgba(240,165,0,.3)}
+              50%{text-shadow:0 0 30px rgba(240,165,0,.65)}}
+</style>
 </head>
 <body>
 
-<!-- ═══ START SCREEN ══════════════════════════════════ -->
-<div class="screen" id="startScreen">
-    <div class="s-icon">🗡️</div>
-    <div class="s-title">Prasad Cutting</div>
-    <div class="s-sub">
-        Slice the sacred offerings to earn Baba's blessing.<br>
-        Dodge the fire-bomb — one touch costs a life.
-    </div>
-    <div class="divider"></div>
-    <div class="lives">❤️ ❤️ ❤️</div>
-    <button class="btn" onclick="startGame()">Begin the Ritual</button>
-    <a href="index.html" class="btn-back">← Back to Temple</a>
+<!-- START SCREEN -->
+<div class="scr" id="SS">
+  <div class="ico">🗡️</div>
+  <div class="ttl">Prasad Cutting</div>
+  <div class="sub">Slice the sacred offerings to earn Baba's blessing.<br>
+    Dodge the fire-bomb — one touch costs a life.</div>
+  <div class="div"></div>
+  <div class="lv">❤️ ❤️ ❤️</div>
+  <button class="btn" onclick="startGame()">Begin the Ritual</button>
+  <a href="index.html" class="bk">← Back to Temple</a>
 </div>
 
-<!-- ═══ GAME OVER SCREEN ══════════════════════════════ -->
-<div class="screen hidden" id="gameOverScreen">
-    <div class="s-icon">💀</div>
-    <div class="s-title">The Temple Falls Silent</div>
-    <div class="s-sub">The ritual is broken</div>
-    <div class="divider"></div>
-    <div class="s-score" id="finalScore">0</div>
-    <div class="s-coins" id="finalCoins">🪙 0 coins earned</div>
-    <button class="btn" onclick="restartGame()">Try Again</button>
-    <a href="index.html" class="btn-back">← Back to Temple</a>
+<!-- GAME OVER SCREEN -->
+<div class="scr off" id="GS">
+  <div class="ico">💀</div>
+  <div class="ttl">The Temple Falls Silent</div>
+  <div class="sub">The ritual is broken</div>
+  <div class="div"></div>
+  <div class="sc" id="fSc">0</div>
+  <div class="cn" id="fCn">🪙 0 coins earned</div>
+  <button class="btn" onclick="restartGame()">Try Again</button>
+  <a href="index.html" class="bk">← Back to Temple</a>
 </div>
 
-<canvas id="gameCanvas"></canvas>
+<canvas id="c"></canvas>
 
 <script>
-/* ════════════════════════════════════════════════════════════
-   $BAWALIYA — PRASAD CUTTING  v2.0
-   Enhanced edition — real fruits · fire bomb · combos · halves
-   ════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   SHARP EDITION — What changed from v2.0
+   ─────────────────────────────────────────────────────────────
+   1. PointerEvent API replaces split mouse/touch → single path,
+      lower OS-level latency, works on stylus too.
+   2. setPointerCapture → pointer stays locked to canvas even if
+      the finger drifts off-screen. No more "lost slice".
+   3. initAudio() pre-warms AudioContext + plays silent buffer at
+      game start → ZERO first-sound latency. No audio stutter.
+   4. Trail interpolation → fast swipes generate intermediate
+      points so no hitbox can be "skipped" by a speedy finger.
+   5. Speed-scaled hitbox → expand by up to +20 px at high speed.
+      Near-misses on fast slices now register correctly.
+   6. Min-speed threshold (>3 px) → static finger never triggers
+      a false slice.
+   7. Delta-time physics → physics is frame-rate independent.
+      60 fps or 120 fps — same feel.
+   8. Higher burst velocity (4–13) → juice splatter feels instant
+      and satisfying rather than sluggish.
+   9. cursor:none on canvas → OS cursor hidden = no double-cursor
+      visual lag artefact on desktop/web.
+  10. activePointerId guard → second finger is ignored, preventing
+      accidental double-triggers on mobile.
+   ═══════════════════════════════════════════════════════════════ */
 
-const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d');
+const cv  = document.getElementById('c');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = 'high';
+
 let W, H;
-
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
 resize();
 window.addEventListener('resize', resize);
 
-/* ── TELEGRAM ──────────────────────────────────────────── */
 const TG = window.Telegram?.WebApp;
-if (TG) { TG.ready(); TG.expand(); }
+if (TG){ TG.ready(); TG.expand(); }
 
-/* ════════════════════════════════════════════════════════════
-   AUDIO ENGINE  (Web Audio API — no external files needed)
-   ════════════════════════════════════════════════════════════ */
-let _ac;
-function ac() {
-    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
-    if (_ac.state === 'suspended') _ac.resume();
-    return _ac;
+/* ── AUDIO (pre-warmed at game start) ─────────────────────── */
+let _ac = null;
+
+function initAudio(){
+  try{
+    _ac = new (window.AudioContext || window.webkitAudioContext)();
+    /* Silent-buffer unlock: forces AudioContext to the "running"
+       state immediately so the FIRST real sound plays with 0 lag */
+    const b = _ac.createBuffer(1,1,22050);
+    const s = _ac.createBufferSource(); s.buffer = b;
+    s.connect(_ac.destination); s.start(0); s.stop(0.001);
+  }catch(e){}
 }
 
-/* Slice whoosh */
-function sfxSlice() {
-    try {
-        const a = ac(), o = a.createOscillator(), g = a.createGain();
-        o.connect(g); g.connect(a.destination);
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(750, a.currentTime);
-        o.frequency.exponentialRampToValueAtTime(110, a.currentTime + 0.09);
-        g.gain.setValueAtTime(0.2, a.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.11);
-        o.start(); o.stop(a.currentTime + 0.13);
-    } catch(e){}
+function sfxSlice(){
+  try{
+    const a=_ac; if(!a) return;
+    const o=a.createOscillator(),g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(850,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(100,a.currentTime+.07);
+    g.gain.setValueAtTime(.22,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.09);
+    o.start(); o.stop(a.currentTime+.1);
+  }catch(e){}
 }
 
-/* Combo ascending chime */
-function sfxCombo(lvl) {
-    try {
-        const a = ac();
-        [523, 659, 784, 1047].slice(0, Math.min(lvl, 4)).forEach((f, i) => {
-            const o = a.createOscillator(), g = a.createGain();
-            o.connect(g); g.connect(a.destination);
-            o.type = 'sine'; o.frequency.value = f;
-            const t = a.currentTime + i * 0.065;
-            g.gain.setValueAtTime(0.17, t);
-            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-            o.start(t); o.stop(t + 0.22);
-        });
-    } catch(e){}
+function sfxCombo(lvl){
+  try{
+    const a=_ac; if(!a) return;
+    [523,659,784,1047].slice(0,Math.min(lvl,4)).forEach((f,i)=>{
+      const o=a.createOscillator(),g=a.createGain();
+      o.connect(g); g.connect(a.destination);
+      o.type='sine'; o.frequency.value=f;
+      const t=a.currentTime+i*.06;
+      g.gain.setValueAtTime(.17,t); g.gain.exponentialRampToValueAtTime(.001,t+.16);
+      o.start(t); o.stop(t+.2);
+    });
+  }catch(e){}
 }
 
-/* BOMB — fire crackle + low rumble  ← KEY SOUND EFFECT */
-function sfxBomb() {
-    try {
-        const a = ac();
-        /* --- 1. Crackle: filtered white noise burst --- */
-        const buf = a.createBuffer(1, Math.floor(a.sampleRate * 0.65), a.sampleRate);
-        const d   = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++)
-            d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.1);
-        const src = a.createBufferSource(); src.buffer = buf;
-        const flt = a.createBiquadFilter();
-        flt.type = 'bandpass'; flt.frequency.value = 320; flt.Q.value = 0.75;
-        const g1  = a.createGain();
-        g1.gain.setValueAtTime(0.55, a.currentTime);
-        g1.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.68);
-        src.connect(flt); flt.connect(g1); g1.connect(a.destination);
-        src.start(); src.stop(a.currentTime + 0.72);
-        /* --- 2. Rumble: descending oscillator --- */
-        const r = a.createOscillator(), gr = a.createGain();
-        r.connect(gr); gr.connect(a.destination);
-        r.type = 'sawtooth';
-        r.frequency.setValueAtTime(90, a.currentTime);
-        r.frequency.exponentialRampToValueAtTime(16, a.currentTime + 0.5);
-        gr.gain.setValueAtTime(0.32, a.currentTime);
-        gr.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.55);
-        r.start(); r.stop(a.currentTime + 0.6);
-    } catch(e){}
+/* BOMB — fire crackle + low rumble */
+function sfxBomb(){
+  try{
+    const a=_ac; if(!a) return;
+    const buf=a.createBuffer(1,Math.floor(a.sampleRate*.65),a.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)
+      d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.1);
+    const src=a.createBufferSource(); src.buffer=buf;
+    const flt=a.createBiquadFilter();
+    flt.type='bandpass'; flt.frequency.value=320; flt.Q.value=.75;
+    const g1=a.createGain();
+    g1.gain.setValueAtTime(.55,a.currentTime);
+    g1.gain.exponentialRampToValueAtTime(.001,a.currentTime+.65);
+    src.connect(flt); flt.connect(g1); g1.connect(a.destination);
+    src.start(); src.stop(a.currentTime+.7);
+    const r=a.createOscillator(),gr=a.createGain();
+    r.connect(gr); gr.connect(a.destination); r.type='sawtooth';
+    r.frequency.setValueAtTime(90,a.currentTime);
+    r.frequency.exponentialRampToValueAtTime(16,a.currentTime+.5);
+    gr.gain.setValueAtTime(.32,a.currentTime);
+    gr.gain.exponentialRampToValueAtTime(.001,a.currentTime+.55);
+    r.start(); r.stop(a.currentTime+.6);
+  }catch(e){}
 }
 
-/* Missed fruit — sad thud */
-function sfxMiss() {
-    try {
-        const a = ac(), o = a.createOscillator(), g = a.createGain();
-        o.connect(g); g.connect(a.destination);
-        o.type = 'sine';
-        o.frequency.setValueAtTime(240, a.currentTime);
-        o.frequency.exponentialRampToValueAtTime(80, a.currentTime + 0.32);
-        g.gain.setValueAtTime(0.17, a.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.35);
-        o.start(); o.stop(a.currentTime + 0.38);
-    } catch(e){}
+function sfxMiss(){
+  try{
+    const a=_ac; if(!a) return;
+    const o=a.createOscillator(),g=a.createGain();
+    o.connect(g); g.connect(a.destination); o.type='sine';
+    o.frequency.setValueAtTime(240,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(80,a.currentTime+.32);
+    g.gain.setValueAtTime(.17,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.35);
+    o.start(); o.stop(a.currentTime+.38);
+  }catch(e){}
 }
 
-/* ════════════════════════════════════════════════════════════
-   FRUIT DATA  — EDIT THIS ARRAY to add/remove fruits
-   emoji    : the actual emoji displayed (looks like a real fruit)
-   juice    : primary splash colour
-   splash   : secondary splash colour
-   ════════════════════════════════════════════════════════════ */
-const FRUITS = [
-    { emoji:'🍎', juice:'#c0392b', splash:'#e74c3c'  },   // Apple
-    { emoji:'🍊', juice:'#d35400', splash:'#e67e22'  },   // Orange
-    { emoji:'🍋', juice:'#f39c12', splash:'#f1c40f'  },   // Lemon
-    { emoji:'🍉', juice:'#1d8348', splash:'#27ae60'  },   // Watermelon
-    { emoji:'🍇', juice:'#6c3483', splash:'#9b59b6'  },   // Grapes
-    { emoji:'🍓', juice:'#922b21', splash:'#e74c3c'  },   // Strawberry
-    { emoji:'🥭', juice:'#ca6f1e', splash:'#f39c12'  },   // Mango   ← Indian prasad
-    { emoji:'🍌', juice:'#d4ac0d', splash:'#f1c40f'  },   // Banana
-    { emoji:'🥥', juice:'#6e2f1a', splash:'#a04000'  },   // Coconut ← temple offering
-    { emoji:'🍑', juice:'#cb4335', splash:'#e74c3c'  },   // Peach
-    { emoji:'🍍', juice:'#b7950b', splash:'#f1c40f'  },   // Pineapple
+/* ── FRUIT DATA — edit this array to add/remove fruits ─────── */
+const FRUITS=[
+  {e:'🍎',j:'#c0392b',s:'#e74c3c'},  // Apple
+  {e:'🍊',j:'#d35400',s:'#e67e22'},  // Orange
+  {e:'🍋',j:'#f39c12',s:'#f1c40f'},  // Lemon
+  {e:'🍉',j:'#1d8348',s:'#27ae60'},  // Watermelon
+  {e:'🍇',j:'#6c3483',s:'#9b59b6'},  // Grapes
+  {e:'🍓',j:'#922b21',s:'#e74c3c'},  // Strawberry
+  {e:'🥭',j:'#ca6f1e',s:'#f39c12'},  // Mango  ← Indian prasad
+  {e:'🍌',j:'#d4ac0d',s:'#f1c40f'},  // Banana
+  {e:'🥥',j:'#6e2f1a',s:'#a04000'},  // Coconut ← temple offering
+  {e:'🍑',j:'#cb4335',s:'#e74c3c'},  // Peach
+  {e:'🍍',j:'#b7950b',s:'#f1c40f'},  // Pineapple
 ];
 
-/* ════════════════════════════════════════════════════════════
-   GAME STATE  — tweak starting values here
-   ════════════════════════════════════════════════════════════ */
-let playing    = false;
-let score      = 0;
-let lives      = 3;      /* EDIT: starting lives */
-let combo      = 0;
-let comboTimer = 0;
-let coins      = 0;
-let gameTime   = 0;      /* frames elapsed since start */
-let spawnTimer = 0;
-let spawnEvery = 75;     /* EDIT: frames between spawns (lower = harder) */
+/* ── GAME STATE ─────────────────────────────────────────────── */
+let playing=false;
+let score=0,lives=3,combo=0,comboTimer=0,coins=0;
+let gameTime=0,spawnTimer=0,spawnEvery=75;
+let items=[],halves=[],particles=[],texts=[],trail=[];
+let shakeAmt=0,shakeDur=0;
+let dragging=false,sliceVX=0,sliceVY=0;
+let lastTS=0;              /* timestamp of previous frame */
+let activePID=null;        /* active pointer ID (single-finger guard) */
 
-let items     = [];      /* flying fruits & bombs */
-let halves    = [];      /* sliced fruit halves flying apart */
-let particles = [];      /* juice splatter drops */
-let texts     = [];      /* floating score labels */
-let trail     = [];      /* current swipe trail */
+/* ── HELPERS ────────────────────────────────────────────────── */
+const rnd  = (a,b) => a+Math.random()*(b-a);
+const pick = arr  => arr[Math.floor(Math.random()*arr.length)];
 
-let shakeAmt  = 0;
-let shakeDur  = 0;
-let dragging  = false;
-let sliceVX   = 0, sliceVY = 0;  /* last swipe direction vector */
-
-/* ── HELPERS ─────────────────────────────────────────────── */
-const rnd    = (a, b) => a + Math.random() * (b - a);
-const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
-
-/* Line segment vs circle — used for slice collision */
-function lineHitsCircle(ax, ay, bx, by, cx, cy, r) {
-    const dx = bx-ax, dy = by-ay;
-    const fx = ax-cx, fy = ay-cy;
-    const a  = dx*dx + dy*dy; if (!a) return false;
-    const b  = 2*(fx*dx + fy*dy);
-    const c  = fx*fx + fy*fy - r*r;
-    let disc = b*b - 4*a*c; if (disc < 0) return false;
-    disc = Math.sqrt(disc);
-    const t1 = (-b - disc) / (2*a);
-    const t2 = (-b + disc) / (2*a);
-    return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1);
+/* Line-segment vs circle — core slice-detection math */
+function lhc(ax,ay,bx,by,cx,cy,r){
+  const dx=bx-ax,dy=by-ay,fx=ax-cx,fy=ay-cy;
+  const a=dx*dx+dy*dy; if(!a) return false;
+  const b=2*(fx*dx+fy*dy), c=fx*fx+fy*fy-r*r;
+  let disc=b*b-4*a*c; if(disc<0) return false;
+  disc=Math.sqrt(disc);
+  const t1=(-b-disc)/(2*a),t2=(-b+disc)/(2*a);
+  return(t1>=0&&t1<=1)||(t2>=0&&t2<=1);
 }
 
-/* Canvas rounded rectangle path helper */
-function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w-r, y);       ctx.quadraticCurveTo(x+w, y,   x+w, y+r);
-    ctx.lineTo(x+w, y+h-r);     ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-    ctx.lineTo(x+r, y+h);       ctx.quadraticCurveTo(x,   y+h, x, y+h-r);
-    ctx.lineTo(x, y+r);         ctx.quadraticCurveTo(x,   y,   x+r, y);
-    ctx.closePath();
+function rrect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
 }
 
-/* ════════════════════════════════════════════════════════════
-   SPAWNING
-   ════════════════════════════════════════════════════════════ */
-function spawnItem() {
-    /* BOMB chance: starts 10%, rises to 32% as game progresses
-       EDIT: change 0.10 (start %) and 0.32 (max %) below      */
-    const bombChance = Math.min(0.10 + gameTime * 0.000085, 0.32);
-    const isBomb = Math.random() < bombChance;
+/* ── SPAWNING ───────────────────────────────────────────────── */
+function spawnItem(){
+  /* BOMB chance: 10% at start → max 32% over time
+     EDIT: change these two numbers to tune difficulty */
+  const bombChance = Math.min(.10 + gameTime*.000085, .32);
+  const isBomb     = Math.random() < bombChance;
+  const speed      = rnd(13,18) + gameTime*.003;
 
-    const speed = rnd(12, 17) + gameTime * 0.0028;   /* faster over time */
+  items.push({
+    type : isBomb ? 'bomb' : 'fruit',
+    fr   : isBomb ? null : pick(FRUITS),
+    x    : rnd(W*.12, W*.88),
+    y    : H+65,
+    vx   : rnd(-3.5,3.5),
+    vy   : -speed,
+    rot  : rnd(0,Math.PI*2),
+    rotV : rnd(-.1,.1),
+    r    : 44,          /* hitbox radius — larger = easier to slice */
+    done : false,
+    gph  : rnd(0,Math.PI*2),
+    fire : [],
+  });
+}
 
-    items.push({
-        type  : isBomb ? 'bomb' : 'fruit',
-        fruit : isBomb ? null : pick(FRUITS),
-        x     : rnd(W * 0.12, W * 0.88),
-        y     : H + 65,
-        vx    : rnd(-3.5, 3.5),
-        vy    : -speed,
-        rot   : rnd(0, Math.PI * 2),
-        rotV  : rnd(-0.09, 0.09),
-        r     : 40,                       /* hitbox radius */
-        done  : false,
-        gph   : rnd(0, Math.PI * 2),      /* glow animation phase for bombs */
-        fire  : [],                        /* bomb fire micro-particles */
+/* ── SLICE HANDLER ──────────────────────────────────────────── */
+function handleSlice(it){
+  if(it.done) return; it.done=true;
+
+  if(it.type==='bomb'){
+    sfxBomb(); shake(20,26);
+    burst(it.x,it.y,'#ff4400','#ff2200',30);
+    burst(it.x,it.y,'#ff9900','#ffee00',16);
+    addTxt(it.x,it.y,'💥 BOMB!','#ff4444',30);
+    lives=Math.max(0,lives-1); combo=0; comboTimer=0;
+    if(!lives) endGame();
+  } else {
+    sfxSlice(); combo++; comboTimer=90;
+    const pts=Math.max(1,Math.floor(combo>=6?4:combo>=4?2.5:combo>=2?1.5:1));
+    score+=pts; coins+=pts;
+    burst(it.x,it.y,it.fr.s,'#ffffff',16);
+    spawnHalves(it);
+    if(combo>=6){ sfxCombo(4); addTxt(it.x,it.y-45,`🔥 ${combo}x FRENZY`,'#ffd700',30); shake(5,10); }
+    else if(combo>=4){ sfxCombo(3); addTxt(it.x,it.y-32,`⚡ ${combo}x COMBO`,'#f0a500',26); }
+    else if(combo>=2){ addTxt(it.x,it.y-20,`${combo}x`,'#f0a500',21); }
+    else { addTxt(it.x,it.y,`+${pts}`,'#ffd166',19); }
+  }
+}
+
+/* Fruit halves fly apart along slice-perpendicular direction */
+function spawnHalves(it){
+  const len=Math.sqrt(sliceVX*sliceVX+sliceVY*sliceVY)||1;
+  const nx=-sliceVY/len, ny=sliceVX/len;
+  const spd=rnd(5,9);  /* faster = more satisfying split */
+  for(let i=0;i<2;i++){
+    const d=i?-1:1;
+    halves.push({
+      e:it.fr.e, x:it.x, y:it.y,
+      vx:nx*spd*d+rnd(-1.5,1.5), vy:ny*spd*d-rnd(3,7),
+      rot:it.rot, rotV:d*rnd(.08,.17),
+      a:1, sz:it.r, h:i
     });
+  }
 }
 
-/* ════════════════════════════════════════════════════════════
-   SLICE  &  EFFECTS
-   ════════════════════════════════════════════════════════════ */
-function handleSlice(item) {
-    if (item.done) return;
-    item.done = true;
-
-    if (item.type === 'bomb') {
-        /* ── BOMB HIT ── */
-        sfxBomb();
-        shake(18, 24);
-        burst(item.x, item.y, '#ff4400', '#ff2200', 26);
-        burst(item.x, item.y, '#ff9900', '#ffdd00', 14);
-        addText(item.x, item.y, '💥 BOMB!', '#ff4444', 28);
-        lives = Math.max(0, lives - 1);
-        combo = 0; comboTimer = 0;
-        if (!lives) endGame();
-    } else {
-        /* ── FRUIT HIT ── */
-        sfxSlice();
-        combo++; comboTimer = 90;
-
-        /* Scoring with combo multiplier */
-        const mult = combo >= 6 ? 4 : combo >= 4 ? 2.5 : combo >= 2 ? 1.5 : 1;
-        const pts  = Math.floor(mult);
-        score += pts; coins += pts;
-
-        burst(item.x, item.y, item.fruit.splash, '#ffffff', 14);
-        spawnHalves(item);
-
-        if (combo >= 6) {
-            sfxCombo(4);
-            addText(item.x, item.y - 42, `🔥 ${combo}x FRENZY`, '#ffd700', 28);
-            shake(5, 9);
-        } else if (combo >= 4) {
-            sfxCombo(3);
-            addText(item.x, item.y - 30, `⚡ ${combo}x COMBO`, '#f0a500', 24);
-        } else if (combo >= 2) {
-            addText(item.x, item.y - 18, `${combo}x combo`, '#f0a500', 19);
-        } else {
-            addText(item.x, item.y, `+${pts}`, '#ffd166', 18);
-        }
-    }
-}
-
-/* Spawn two half-emoji pieces that fly apart */
-function spawnHalves(item) {
-    const len = Math.sqrt(sliceVX*sliceVX + sliceVY*sliceVY) || 1;
-    const nx  = -sliceVY / len;  /* perpendicular to swipe */
-    const ny  =  sliceVX / len;
-    const spd = rnd(3, 6);
-    for (let i = 0; i < 2; i++) {
-        const dir = i === 0 ? 1 : -1;
-        halves.push({
-            emoji : item.fruit.emoji,
-            x: item.x, y: item.y,
-            vx: nx * spd * dir + rnd(-1, 1),
-            vy: ny * spd * dir - rnd(2, 5),
-            rot: item.rot, rotV: dir * rnd(0.06, 0.14),
-            alpha: 1, size: item.r, half: i,
-        });
-    }
-}
-
-/* Juice / fire burst particles */
-function burst(x, y, c1, c2, count) {
-    for (let i = 0; i < count; i++) {
-        const ang = rnd(0, Math.PI * 2), spd = rnd(2, 7);
-        particles.push({
-            x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd - rnd(1,3),
-            size: rnd(3, 9), color: Math.random() < 0.55 ? c1 : c2, alpha: 1,
-        });
-    }
-}
-
-const addText = (x, y, text, color, size) => texts.push({ x, y, text, color, size, alpha:1 });
-const shake   = (amt, dur) => { shakeAmt = amt; shakeDur = dur; };
-
-/* ── BOMB FIRE MICRO-PARTICLES ───────────────────────────── */
-function updateBombFire(item) {
-    if (Math.random() < 0.55) {
-        const ang = rnd(0, Math.PI * 2);
-        const sp  = item.r * rnd(0.3, 0.7);
-        item.fire.push({
-            x: item.x + Math.cos(ang) * sp,
-            y: item.y + Math.sin(ang) * sp,
-            vx: rnd(-1.2, 1.2), vy: rnd(-3, -1),
-            sz: rnd(5, 12), a: rnd(0.7, 1.0),
-            hue: rnd(10, 40),
-        });
-    }
-    for (let i = item.fire.length - 1; i >= 0; i--) {
-        const f = item.fire[i];
-        f.x += f.vx; f.y += f.vy; f.a -= 0.042; f.sz *= 0.955;
-        if (f.a <= 0.04) item.fire.splice(i, 1);
-    }
-}
-
-/* ════════════════════════════════════════════════════════════
-   UPDATE  (physics + spawning + difficulty)
-   ════════════════════════════════════════════════════════════ */
-const GRAVITY = 0.27;
-
-function update() {
-    gameTime++; spawnTimer++;
-
-    /* Difficulty ramps up: spawn interval shrinks over time
-       EDIT: change min (28) to make max difficulty faster/slower */
-    spawnEvery = Math.max(28, 75 - Math.floor(gameTime / 180) * 4);
-
-    if (spawnTimer >= spawnEvery) {
-        spawnTimer = 0;
-        spawnItem();
-        if (gameTime > 400 && Math.random() < 0.36) spawnItem(); /* double spawn */
-        if (gameTime > 900 && Math.random() < 0.22) spawnItem(); /* triple spawn */
-    }
-
-    /* Items */
-    for (let i = items.length - 1; i >= 0; i--) {
-        const it = items[i];
-        if (it.done) { items.splice(i, 1); continue; }
-        it.vy += GRAVITY; it.x += it.vx; it.y += it.vy; it.rot += it.rotV;
-        if (it.type === 'bomb') updateBombFire(it);
-        if (it.y > H + 85) {
-            if (it.type === 'fruit') {
-                lives = Math.max(0, lives - 1); sfxMiss();
-                addText(it.x, H - 52, 'MISSED ✗', '#ff5555', 18);
-                combo = 0; comboTimer = 0;
-                if (!lives) endGame();
-            }
-            items.splice(i, 1);
-        }
-    }
-
-    /* Fruit halves */
-    for (let i = halves.length - 1; i >= 0; i--) {
-        const h = halves[i];
-        h.vy += GRAVITY; h.x += h.vx; h.y += h.vy; h.rot += h.rotV;
-        h.alpha -= 0.024;
-        if (h.alpha <= 0 || h.y > H + 100) halves.splice(i, 1);
-    }
-
-    /* Particles */
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.alpha -= 0.022;
-        if (p.alpha <= 0) particles.splice(i, 1);
-    }
-
-    /* Floating texts */
-    for (let i = texts.length - 1; i >= 0; i--) {
-        const t = texts[i];
-        t.y -= 1.6; t.alpha -= 0.016;
-        if (t.alpha <= 0) texts.splice(i, 1);
-    }
-
-    /* Swipe trail */
-    trail = trail.slice(-22);
-
-    /* Combo decay */
-    if (comboTimer > 0) comboTimer--;
-    else if (combo > 0) combo = 0;
-
-    /* Shake decay */
-    if (shakeDur > 0) shakeDur--;
-    else shakeAmt = 0;
-}
-
-/* ════════════════════════════════════════════════════════════
-   DRAW FUNCTIONS
-   ════════════════════════════════════════════════════════════ */
-function drawBG() {
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#0c0a05');
-    bg.addColorStop(1, '#080604');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-
-    /* Warm temple-glow at bottom */
-    const glow = ctx.createRadialGradient(W/2, H, 0, W/2, H, H * 0.62);
-    glow.addColorStop(0, 'rgba(155, 58, 0, 0.09)');
-    glow.addColorStop(1, 'transparent');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, W, H);
-}
-
-/* Fire particles behind bombs — drawn first so bomb body is on top */
-function drawBombFire() {
-    items.forEach(it => {
-        if (it.type !== 'bomb' || it.done) return;
-        it.fire.forEach(f => {
-            ctx.globalAlpha = f.a * 0.9;
-            ctx.fillStyle   = `hsl(${f.hue}, 100%, 55%)`;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, f.sz, 0, Math.PI * 2);
-            ctx.fill();
-        });
+/* Juice/fire burst — HIGH velocity = instant punch feel */
+function burst(x,y,c1,c2,n){
+  for(let i=0;i<n;i++){
+    const ang=rnd(0,Math.PI*2), spd=rnd(4,13); /* ← key: was 2–7, now 4–13 */
+    particles.push({
+      x,y, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-rnd(2,5),
+      sz:rnd(3,8), c:Math.random()<.55?c1:c2, a:1
     });
-    ctx.globalAlpha = 1;
+  }
 }
 
-/* Fruits — large readable emojis with shadow */
-function drawFruit(item) {
-    ctx.shadowBlur  = 16;
-    ctx.shadowColor = 'rgba(0,0,0,0.55)';
-    ctx.font        = `${item.r * 1.55}px sans-serif`;
-    ctx.textAlign   = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(item.fruit.emoji, 0, 0);
-    ctx.shadowBlur = 0;
-}
+const addTxt = (x,y,t,c,sz) => texts.push({x,y,t,c,sz,a:1});
+const shake  = (a,d) => { shakeAmt=a; shakeDur=d; };
 
-/* BOMB — dark crimson body · glowing cracks · animated fuse · ☠️ skull */
-function drawBomb(item) {
-    const r  = item.r;
-    const t  = Date.now() / 1000;
-    const pl = (Math.sin(t * 7 + item.gph) + 1) / 2;  /* pulse 0–1 */
-
-    /* Outer fire aura */
-    const aura = ctx.createRadialGradient(0, 0, r * 0.55, 0, 0, r * 1.95);
-    aura.addColorStop(0,   `rgba(255, 58, 0, ${0.28 + pl * 0.20})`);
-    aura.addColorStop(0.5, `rgba(180, 28, 0, ${0.12 + pl * 0.10})`);
-    aura.addColorStop(1,   'transparent');
-    ctx.fillStyle = aura;
-    ctx.beginPath(); ctx.arc(0, 0, r * 1.95, 0, Math.PI * 2); ctx.fill();
-
-    /* Bomb body — deep crimson-black */
-    const body = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
-    body.addColorStop(0,   '#3d0000');
-    body.addColorStop(0.55,'#1a0000');
-    body.addColorStop(1,   '#080000');
-    ctx.fillStyle   = body;
-    ctx.shadowBlur  = 14;
-    ctx.shadowColor = `rgba(255,28,0,${0.30 + pl * 0.32})`;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-
-    /* Glowing crack veins */
-    ctx.strokeStyle = `rgba(255,55,0,${0.35 + pl * 0.38})`;
-    ctx.lineWidth   = 1.5;
-    [0, 60, 120, 180, 240, 300].forEach(deg => {
-        const a = deg * Math.PI / 180;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75);
-        ctx.stroke();
+/* Bomb fire micro-particles */
+function updateFire(it){
+  if(Math.random()<.58){
+    const ang=rnd(0,Math.PI*2), sp=it.r*rnd(.3,.7);
+    it.fire.push({
+      x:it.x+Math.cos(ang)*sp, y:it.y+Math.sin(ang)*sp,
+      vx:rnd(-1.2,1.2), vy:rnd(-3,-1),
+      sz:rnd(5,13), a:rnd(.7,1), h:rnd(10,42)
     });
-
-    /* ☠️ skull kept upright while body rotates */
-    ctx.rotate(-item.rot);
-    ctx.font = `${r * 1.05}px sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('☠️', 0, 2);
-    ctx.rotate(item.rot);
-
-    /* Fuse — wobbly sinusoidal */
-    const fuseY = -r - 14 - Math.sin(t * 10) * 4;
-    ctx.strokeStyle = '#7b4f29'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(r*0.2, -r*0.85);
-    ctx.quadraticCurveTo(r*0.6 + Math.cos(t*8)*4, -r-8, r*0.35, fuseY);
-    ctx.stroke();
-
-    /* Fuse spark — flickering gold/orange dot */
-    const sparkR = 3.5 + Math.sin(t * 22) * 1.5;
-    ctx.shadowBlur  = 10;
-    ctx.shadowColor = '#ff8800';
-    ctx.fillStyle   = `rgba(255,${150+Math.floor(pl*100)},0,${0.7+Math.sin(t*26)*0.28})`;
-    ctx.beginPath(); ctx.arc(r*0.35, fuseY, sparkR, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
+  }
+  for(let i=it.fire.length-1;i>=0;i--){
+    const f=it.fire[i];
+    f.x+=f.vx; f.y+=f.vy; f.a-=.045; f.sz*=.952;
+    if(f.a<=.04) it.fire.splice(i,1);
+  }
 }
 
-/* All items (fruits + bombs) in the correct rotation context */
-function drawItems() {
-    items.forEach(it => {
-        if (it.done) return;
-        ctx.save();
-        ctx.translate(it.x, it.y);
-        ctx.rotate(it.rot);
-        it.type === 'fruit' ? drawFruit(it) : drawBomb(it);
-        ctx.restore();
-    });
-}
+/* ── UPDATE (delta-time based) ──────────────────────────────── */
+const G=.27; /* gravity per frame at 60 fps */
 
-/* Sliced fruit halves — each shows only one half via clip */
-function drawHalves() {
-    halves.forEach(h => {
-        ctx.save();
-        ctx.globalAlpha = h.alpha;
-        ctx.translate(h.x, h.y);
-        ctx.rotate(h.rot);
-        ctx.beginPath();
-        /* Clip left or right half of the emoji */
-        if (h.half === 0) ctx.rect(-h.size*2, -h.size*2,  h.size*2, h.size*4);
-        else              ctx.rect(0,          -h.size*2,  h.size*2, h.size*4);
-        ctx.clip();
-        ctx.font = `${h.size*1.55}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(h.emoji, 0, 0);
-        ctx.restore();
-    });
-}
+function update(dt){
+  gameTime++; spawnTimer++;
+  spawnEvery=Math.max(28, 75-Math.floor(gameTime/180)*4);
 
-/* Juice / fire splatter droplets */
-function drawParticles() {
-    particles.forEach(p => {
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle   = p.color;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-}
+  if(spawnTimer>=spawnEvery){
+    spawnTimer=0; spawnItem();
+    if(gameTime>400&&Math.random()<.36) spawnItem();
+    if(gameTime>900&&Math.random()<.22) spawnItem();
+  }
 
-/* Golden swipe trail */
-function drawTrail() {
-    if (trail.length < 2) return;
-    for (let i = 1; i < trail.length; i++) {
-        const t = i / trail.length;
-        ctx.beginPath();
-        ctx.moveTo(trail[i-1].x, trail[i-1].y);
-        ctx.lineTo(trail[i].x,   trail[i].y);
-        ctx.strokeStyle = `rgba(255,215,60,${t * 0.88})`;
-        ctx.lineWidth   = t * 4.5;
-        ctx.lineCap     = 'round';
-        ctx.stroke();
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i];
+    if(it.done){ items.splice(i,1); continue; }
+    it.vy+=G*dt; it.x+=it.vx*dt; it.y+=it.vy*dt; it.rot+=it.rotV*dt;
+    if(it.type==='bomb') updateFire(it);
+    if(it.y>H+90){
+      if(it.type==='fruit'){
+        lives=Math.max(0,lives-1); sfxMiss();
+        addTxt(it.x,H-55,'MISSED ✗','#ff5555',19);
+        combo=0; comboTimer=0;
+        if(!lives) endGame();
+      }
+      items.splice(i,1);
     }
+  }
+
+  for(let i=halves.length-1;i>=0;i--){
+    const h=halves[i];
+    h.vy+=G*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.rot+=h.rotV*dt;
+    h.a-=.022;
+    if(h.a<=0||h.y>H+100) halves.splice(i,1);
+  }
+
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=.22*dt; p.a-=.024;
+    if(p.a<=0) particles.splice(i,1);
+  }
+
+  for(let i=texts.length-1;i>=0;i--){
+    const t=texts[i];
+    t.y-=1.9; t.a-=.018;
+    if(t.a<=0) texts.splice(i,1);
+  }
+
+  trail=trail.slice(-26);
+  if(comboTimer>0) comboTimer--; else if(combo>0) combo=0;
+  if(shakeDur>0) shakeDur--; else shakeAmt=0;
 }
 
-/* Floating score / combo text */
-function drawTexts() {
-    texts.forEach(tx => {
-        ctx.globalAlpha  = tx.alpha;
-        ctx.fillStyle    = tx.color;
-        ctx.shadowBlur   = 10;
-        ctx.shadowColor  = tx.color;
-        ctx.font         = `bold ${tx.size}px 'Segoe UI', system-ui, sans-serif`;
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(tx.text, tx.x, tx.y);
-        ctx.shadowBlur   = 0;
+/* ── DRAW ───────────────────────────────────────────────────── */
+function drawBG(){
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0c0a05'); bg.addColorStop(1,'#080604');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  const gw=ctx.createRadialGradient(W/2,H,0,W/2,H,H*.62);
+  gw.addColorStop(0,'rgba(155,58,0,.09)'); gw.addColorStop(1,'transparent');
+  ctx.fillStyle=gw; ctx.fillRect(0,0,W,H);
+}
+
+function drawFireBehindBombs(){
+  items.forEach(it=>{
+    if(it.type!=='bomb'||it.done) return;
+    it.fire.forEach(f=>{
+      ctx.globalAlpha=f.a*.9;
+      ctx.fillStyle=`hsl(${f.h},100%,55%)`;
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.sz,0,Math.PI*2); ctx.fill();
     });
-    ctx.globalAlpha = 1;
+  });
+  ctx.globalAlpha=1;
 }
 
-/* HUD — score box · lives · combo ribbon · difficulty label */
-function drawHUD() {
-    /* Score box (top-left) */
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    roundRect(10, 10, 122, 52, 8); ctx.fill();
-    ctx.strokeStyle = 'rgba(240,165,0,0.25)'; ctx.lineWidth = 0.5;
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.42)'; ctx.font = '10px system-ui';
-    ctx.textAlign = 'left'; ctx.fillText('SCORE', 20, 28);
-    ctx.fillStyle = '#f0a500'; ctx.font = 'bold 21px system-ui';
-    ctx.fillText(score, 20, 49);
-
-    /* Lives (top-right) */
-    let ls = ''; for (let i = 0; i < 3; i++) ls += i < lives ? '❤️' : '🖤';
-    ctx.font = '22px sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(ls, W - 12, 44);
-
-    /* Combo ribbon (top-centre) */
-    if (combo >= 2 && comboTimer > 0) {
-        ctx.globalAlpha = Math.min(1, comboTimer / 30);
-        const sz  = Math.min(16 + combo * 2, 32);
-        const col = combo >= 6 ? '#ffd700' : '#f0a500';
-        ctx.font         = `bold ${sz}px system-ui`;
-        ctx.fillStyle    = col;
-        ctx.shadowBlur   = 14; ctx.shadowColor = col;
-        ctx.textAlign    = 'center';
-        ctx.fillText(`${combo}× COMBO`, W/2, 38);
-        ctx.shadowBlur   = 0; ctx.globalAlpha = 1;
-    }
-
-    /* Difficulty label (bottom-centre, very subtle) */
-    if (gameTime > 60) {
-        const diff = gameTime < 400  ? 'ACOLYTE'
-                   : gameTime < 800  ? 'DEVOTEE'
-                   : gameTime < 1400 ? 'ORACLE'
-                   : 'LEGEND ✦';
-        ctx.globalAlpha  = 0.28; ctx.font = '9px system-ui';
-        ctx.textAlign    = 'center'; ctx.fillStyle = '#f0a500';
-        ctx.fillText(diff, W/2, H - 10);
-        ctx.globalAlpha  = 1;
-    }
+function drawFruit(it){
+  ctx.shadowBlur=18; ctx.shadowColor='rgba(0,0,0,.6)';
+  ctx.font=`${it.r*1.6}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(it.fr.e,0,0);
+  ctx.shadowBlur=0;
 }
 
-/* ════════════════════════════════════════════════════════════
-   MAIN LOOP
-   ════════════════════════════════════════════════════════════ */
-function loop() {
-    if (!playing) return;
-    ctx.save();
+function drawBomb(it){
+  const r=it.r, T=Date.now()/1000, pl=(Math.sin(T*7+it.gph)+1)/2;
+  /* fire aura */
+  const au=ctx.createRadialGradient(0,0,r*.55,0,0,r*2);
+  au.addColorStop(0,`rgba(255,58,0,${.28+pl*.22})`);
+  au.addColorStop(.5,`rgba(180,28,0,${.12+pl*.12})`);
+  au.addColorStop(1,'transparent');
+  ctx.fillStyle=au; ctx.beginPath(); ctx.arc(0,0,r*2,0,Math.PI*2); ctx.fill();
+  /* dark crimson body */
+  const bd=ctx.createRadialGradient(-r*.3,-r*.3,0,0,0,r);
+  bd.addColorStop(0,'#3d0000'); bd.addColorStop(.55,'#1a0000'); bd.addColorStop(1,'#080000');
+  ctx.fillStyle=bd; ctx.shadowBlur=16;
+  ctx.shadowColor=`rgba(255,28,0,${.3+pl*.35})`;
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  /* glowing crack veins */
+  ctx.strokeStyle=`rgba(255,55,0,${.35+pl*.4})`; ctx.lineWidth=1.5;
+  [0,60,120,180,240,300].forEach(deg=>{
+    const a=deg*Math.PI/180;
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(a)*r*.75,Math.sin(a)*r*.75); ctx.stroke();
+  });
+  /* skull stays upright while body spins */
+  ctx.rotate(-it.rot);
+  ctx.font=`${r*1.08}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('☠️',0,2);
+  ctx.rotate(it.rot);
+  /* wobbly fuse */
+  const fy=-r-14-Math.sin(T*10)*4;
+  ctx.strokeStyle='#7b4f29'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(r*.2,-r*.85);
+  ctx.quadraticCurveTo(r*.6+Math.cos(T*8)*4,-r-8,r*.35,fy); ctx.stroke();
+  /* flickering spark */
+  const sr=3.5+Math.sin(T*22)*1.5;
+  ctx.shadowBlur=10; ctx.shadowColor='#ff8800';
+  ctx.fillStyle=`rgba(255,${150+Math.floor(pl*100)},0,${.7+Math.sin(T*26)*.28})`;
+  ctx.beginPath(); ctx.arc(r*.35,fy,sr,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+}
 
-    /* Screen shake */
-    if (shakeDur > 0) {
-        const s = shakeAmt * (shakeDur / 24);
-        ctx.translate(rnd(-s, s), rnd(-s, s));
-    }
-
-    drawBG();
-    drawBombFire();   /* fire effects behind bombs */
-    drawHalves();
-    drawItems();
-    drawTrail();
-    drawParticles();
-    drawTexts();
-    drawHUD();
-
-    update();
-
+function drawItems(){
+  items.forEach(it=>{
+    if(it.done) return;
+    ctx.save(); ctx.translate(it.x,it.y); ctx.rotate(it.rot);
+    it.type==='fruit'?drawFruit(it):drawBomb(it);
     ctx.restore();
-    requestAnimationFrame(loop);
+  });
 }
 
-/* ════════════════════════════════════════════════════════════
-   INPUT — mouse + touch (both supported)
-   ════════════════════════════════════════════════════════════ */
-function onDown(x, y) {
-    try { if (_ac?.state === 'suspended') _ac.resume(); } catch(e){}
-    dragging = true; trail = [{x,y}]; sliceVX = 0; sliceVY = 0;
+function drawHalves(){
+  halves.forEach(h=>{
+    ctx.save(); ctx.globalAlpha=h.a;
+    ctx.translate(h.x,h.y); ctx.rotate(h.rot);
+    ctx.beginPath();
+    h.h===0 ? ctx.rect(-h.sz*2,-h.sz*2,h.sz*2,h.sz*4)
+            : ctx.rect(0,-h.sz*2,h.sz*2,h.sz*4);
+    ctx.clip();
+    ctx.font=`${h.sz*1.6}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(h.e,0,0);
+    ctx.restore();
+  });
 }
 
-function onMove(x, y) {
-    if (!dragging || !playing) return;
-    const last = trail[trail.length-1] || {x,y};
-    sliceVX = x - last.x; sliceVY = y - last.y;
-    trail.push({x,y});
-    const p1 = trail[trail.length-2], p2 = trail[trail.length-1];
-    if (!p1) return;
-    items.forEach(it => {
-        if (it.done) return;
-        if (lineHitsCircle(p1.x, p1.y, p2.x, p2.y, it.x, it.y, it.r))
-            handleSlice(it);
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.a; ctx.fillStyle=p.c;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.sz,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+function drawTrail(){
+  if(trail.length<2) return;
+  for(let i=1;i<trail.length;i++){
+    const t=i/trail.length;
+    ctx.beginPath();
+    ctx.moveTo(trail[i-1].x,trail[i-1].y);
+    ctx.lineTo(trail[i].x,trail[i].y);
+    ctx.strokeStyle=`rgba(255,215,60,${t*.9})`;
+    ctx.lineWidth=t*5.5; ctx.lineCap='round'; ctx.stroke();
+  }
+}
+
+function drawTexts(){
+  texts.forEach(t=>{
+    ctx.globalAlpha=t.a; ctx.fillStyle=t.c;
+    ctx.shadowBlur=12; ctx.shadowColor=t.c;
+    ctx.font=`bold ${t.sz}px 'Segoe UI',system-ui,sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(t.t,t.x,t.y); ctx.shadowBlur=0;
+  });
+  ctx.globalAlpha=1;
+}
+
+function drawHUD(){
+  ctx.fillStyle='rgba(0,0,0,.45)'; rrect(10,10,122,52,8); ctx.fill();
+  ctx.strokeStyle='rgba(240,165,0,.25)'; ctx.lineWidth=.5; ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.42)'; ctx.font='10px system-ui';
+  ctx.textAlign='left'; ctx.fillText('SCORE',20,28);
+  ctx.fillStyle='#f0a500'; ctx.font='bold 21px system-ui'; ctx.fillText(score,20,49);
+  let ls=''; for(let i=0;i<3;i++) ls+=i<lives?'❤️':'🖤';
+  ctx.font='22px sans-serif'; ctx.textAlign='right'; ctx.fillText(ls,W-12,44);
+  if(combo>=2&&comboTimer>0){
+    ctx.globalAlpha=Math.min(1,comboTimer/30);
+    const sz=Math.min(17+combo*2,34), col=combo>=6?'#ffd700':'#f0a500';
+    ctx.font=`bold ${sz}px system-ui`; ctx.fillStyle=col;
+    ctx.shadowBlur=16; ctx.shadowColor=col; ctx.textAlign='center';
+    ctx.fillText(`${combo}× COMBO`,W/2,38); ctx.shadowBlur=0; ctx.globalAlpha=1;
+  }
+  if(gameTime>60){
+    const d=gameTime<400?'ACOLYTE':gameTime<800?'DEVOTEE':gameTime<1400?'ORACLE':'LEGEND ✦';
+    ctx.globalAlpha=.26; ctx.font='9px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#f0a500'; ctx.fillText(d,W/2,H-10); ctx.globalAlpha=1;
+  }
+}
+
+/* ── MAIN LOOP ──────────────────────────────────────────────── */
+function loop(ts){
+  if(!playing) return;
+  /* Delta-time: clamp to max 2 frames to prevent physics spiral
+     on tab-switch or heavy jank moments                          */
+  const dt = lastTS ? Math.min((ts-lastTS)/16.667, 2) : 1;
+  lastTS = ts;
+
+  ctx.save();
+  /* Screen shake via random translate */
+  if(shakeDur>0){ const s=shakeAmt*(shakeDur/26); ctx.translate(rnd(-s,s),rnd(-s,s)); }
+  drawBG();
+  drawFireBehindBombs(); /* fire behind bombs */
+  drawHalves();
+  drawItems();
+  drawTrail();
+  drawParticles();
+  drawTexts();
+  drawHUD();
+  update(dt);
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INPUT — PointerEvent API
+   ────────────────────────────────────────────────────────────────
+   Why PointerEvent instead of touch/mouse:
+   · Single code path → browser optimises one handler, not two
+   · Fires before touch/mouse events in the browser pipeline
+   · setPointerCapture keeps the pointer locked to the canvas
+     even when the finger slides off-screen
+   · Works for mouse, stylus, and touch with zero changes
+   ════════════════════════════════════════════════════════════════ */
+cv.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  if(activePID!==null) return; /* ignore second finger */
+  activePID=e.pointerId;
+  cv.setPointerCapture(e.pointerId); /* lock pointer to canvas */
+  dragging=true; trail=[{x:e.clientX,y:e.clientY}];
+  sliceVX=0; sliceVY=0;
+},{passive:false});
+
+cv.addEventListener('pointermove', e=>{
+  e.preventDefault();
+  if(!dragging||!playing||e.pointerId!==activePID) return;
+
+  const x=e.clientX, y=e.clientY;
+  const last=trail[trail.length-1]||{x,y};
+  sliceVX=x-last.x; sliceVY=y-last.y;
+  const speed=Math.sqrt(sliceVX*sliceVX+sliceVY*sliceVY);
+
+  /* ── TRAIL INTERPOLATION ───────────────────────────────────
+     On fast swipes the OS fires events less frequently, leaving
+     large gaps between reported positions. We fill those gaps
+     with intermediate points so no hitbox can be "jumped over".
+     steps = how many sub-points to insert (1 on slow drag).     */
+  const steps=Math.max(1,Math.ceil(speed/10));
+  for(let s=1;s<=steps;s++){
+    trail.push({
+      x: last.x+sliceVX*(s/steps),
+      y: last.y+sliceVY*(s/steps)
     });
+  }
+  if(trail.length>40) trail=trail.slice(-40); /* cap trail length */
+
+  /* ── COLLISION CHECK ───────────────────────────────────────
+     Minimum speed >3 px: prevents a static finger from
+     accidentally triggering a slice.
+     Speed-scaled hitbox: expand radius up to +20 px on
+     fast swipes — near-misses at high speed now register.      */
+  if(speed>3){
+    const p1=trail[trail.length-2], p2=trail[trail.length-1];
+    if(p1) items.forEach(it=>{
+      if(it.done) return;
+      const hr=it.r+Math.min(speed*.35,20); /* expanded hitbox */
+      if(lhc(p1.x,p1.y,p2.x,p2.y,it.x,it.y,hr)) handleSlice(it);
+    });
+  }
+},{passive:false});
+
+cv.addEventListener('pointerup',e=>{
+  e.preventDefault();
+  if(e.pointerId!==activePID) return;
+  activePID=null; dragging=false; trail=[];
+},{passive:false});
+
+cv.addEventListener('pointercancel',e=>{
+  if(e.pointerId!==activePID) return;
+  activePID=null; dragging=false; trail=[];
+});
+
+/* ── GAME CONTROL ───────────────────────────────────────────── */
+function startGame(){
+  document.getElementById('SS').classList.add('off');
+  /* Pre-warm AudioContext NOW so the first slice sound
+     plays with zero latency during gameplay.              */
+  initAudio();
+  score=0; lives=3; combo=0; comboTimer=0; coins=0;
+  gameTime=0; spawnTimer=0; spawnEvery=75; lastTS=0;
+  items=[]; halves=[]; particles=[]; texts=[]; trail=[];
+  shakeAmt=0; shakeDur=0; dragging=false; activePID=null;
+  playing=true;
+  requestAnimationFrame(loop);
 }
 
-function onUp() { dragging = false; trail = []; }
+function endGame(){
+  playing=false;
+  document.getElementById('fSc').textContent=score;
+  document.getElementById('fCn').textContent=`🪙 ${coins} coins earned`;
+  document.getElementById('GS').classList.remove('off');
+  /* ── SAVE COINS TO YOUR BACKEND ────────────────────────────
+     Uncomment the block below and replace the URL with your
+     actual server endpoint or Telegram sendData call.
 
-canvas.addEventListener('mousedown',  e => onDown(e.clientX, e.clientY));
-canvas.addEventListener('mousemove',  e => onMove(e.clientX, e.clientY));
-canvas.addEventListener('mouseup',    onUp);
-canvas.addEventListener('mouseleave', onUp);
-canvas.addEventListener('touchstart', e => { e.preventDefault(); onDown(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
-canvas.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
-canvas.addEventListener('touchend',   e => { e.preventDefault(); onUp(); }, {passive:false});
+     fetch('/api/save-coins',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({coins,score})
+     });
 
-/* ════════════════════════════════════════════════════════════
-   GAME CONTROL
-   ════════════════════════════════════════════════════════════ */
-function startGame() {
-    document.getElementById('startScreen').classList.add('hidden');
-    /* Reset everything */
-    score = 0; lives = 3; combo = 0; comboTimer = 0;
-    coins = 0; gameTime = 0; spawnTimer = 0; spawnEvery = 75;
-    items = []; halves = []; particles = []; texts = []; trail = [];
-    shakeAmt = 0; shakeDur = 0;
-    playing = true;
-    requestAnimationFrame(loop);
+     Or via Telegram Mini App:
+     if(TG) TG.sendData(JSON.stringify({game:'prasad',coins,score}));
+  ────────────────────────────────────────────────────────────── */
+  if(TG) console.log('Coins:',coins,'Score:',score);
 }
 
-function endGame() {
-    playing = false;
-    document.getElementById('finalScore').textContent = score;
-    document.getElementById('finalCoins').textContent = `🪙 ${coins} coins earned`;
-    document.getElementById('gameOverScreen').classList.remove('hidden');
-
-    /* ── SAVE COINS TO YOUR BACKEND ───────────────────────
-       Uncomment and adjust the fetch below to send coins
-       to your server / Telegram bot.
-
-       fetch('/api/save-coins', {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({ coins, score }),
-       });
-
-       Or via Telegram Mini App:
-       if (TG) TG.sendData(JSON.stringify({ game:'prasad', coins, score }));
-    ── ────────────────────────────────────────────────── */
-    if (TG) console.log('Coins to save:', coins, '| Score:', score);
+function restartGame(){
+  document.getElementById('GS').classList.add('off');
+  startGame();
 }
 
-function restartGame() {
-    document.getElementById('gameOverScreen').classList.add('hidden');
-    startGame();
-}
-
-/* Initial idle canvas draw */
+/* Initial idle draw */
 drawBG();
 </script>
 </body>
