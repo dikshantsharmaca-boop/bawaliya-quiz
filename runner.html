@@ -1,873 +1,642 @@
-<!DOCTYPE html>
+cat << 'PYEOF' > /tmp/build_spin.py
+
+html = r'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Path to the Temple</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>$BAWALIYA SPIN</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root {
-    --maroon: #7A1F2B;
-    --maroon-deep: #5A1620;
-    --gold: #D4A017;
-    --gold-soft: #E8C766;
-    --bg: #1A0F0A;
-    --bg-raised: #241510;
-    --parchment: #F5E6C8;
-    --flame: #E8833A;
-    --line: rgba(212, 160, 23, 0.18);
-    --dusk-top: #1B2A4A;
-    --dusk-mid: #3A4D75;
-    --dusk-horizon: #C97A4F;
-  }
+:root {
+  --bg: #0A0812;
+  --bg-card: #12101F;
+  --gold: #F0B429;
+  --gold-dim: #C8921A;
+  --flame: #E8833A;
+  --parchment: #F5E6C8;
+  --muted: rgba(245,230,200,0.5);
+  --line: rgba(240,180,41,0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+html, body {
+  background: var(--bg);
+  color: var(--parchment);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* PARTICLES */
+#particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; }
-  }
+/* PAGE */
+.page {
+  position: relative; z-index: 1;
+  max-width: 420px; margin: 0 auto;
+  padding: 0 0 48px;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+}
 
-  html, body {
-    background: var(--bg);
-    overflow: hidden;
-    height: 100%;
-    touch-action: none;
-  }
+/* HEADER */
+.header {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 10px;
+}
+.header-title {
+  font-size: 18px; font-weight: 800;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--gold), var(--flame));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.back-btn {
+  text-decoration: none; color: var(--muted);
+  font-size: 12px; display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+}
 
-  body {
-    color: var(--parchment);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 0;
-  }
+/* COIN DISPLAY */
+.coin-display {
+  margin: 8px 0 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.coin-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.coin-amount {
+  font-size: 38px; font-weight: 800;
+  color: var(--gold);
+  text-shadow: 0 0 30px rgba(240,180,41,0.5);
+  transition: all 0.4s ease;
+}
+.coin-icon { font-size: 20px; }
 
-  .serif { font-family: 'Georgia', 'Iowan Old Style', serif; }
+/* SPIN WHEEL WRAPPER */
+.wheel-wrap {
+  position: relative;
+  width: 320px; height: 320px;
+  margin: 0 auto 8px;
+}
 
-  .stage {
-    width: 100%;
-    max-width: 420px;
-    height: 100vh;
-    max-height: 760px;
-    position: relative;
-    background: var(--bg);
-    overflow: hidden;
-  }
+/* GLOW RING behind wheel */
+.wheel-glow {
+  position: absolute; inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240,180,41,0.18) 0%, transparent 70%);
+  animation: glowPulse 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
 
-  .screen {
-    position: absolute;
-    inset: 0;
-    display: none;
-    z-index: 5;
-    padding: 28px 22px;
-  }
-  .screen.active { display: flex; flex-direction: column; }
+/* CANVAS */
+#wheelCanvas {
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(240,180,41,0.25), 0 0 0 4px var(--gold-dim);
+  display: block;
+}
 
-  #screen-menu { justify-content: center; align-items: center; text-align: center; }
-  .symbol { font-size: 38px; margin-bottom: 16px; }
-  h1.title { font-size: 25px; color: var(--gold-soft); margin-bottom: 8px; font-weight: 400; }
-  .subtitle { font-size: 13.5px; color: rgba(245,230,200,0.6); line-height: 1.6; margin-bottom: 30px; padding: 0 8px; }
+/* POINTER */
+.pointer {
+  position: absolute;
+  top: -22px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 28px solid var(--gold);
+  filter: drop-shadow(0 4px 8px rgba(240,180,41,0.6));
+  z-index: 10;
+}
 
-  .btn {
-    display: block;
-    width: 100%;
-    max-width: 240px;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--bg);
-    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
-    border: none;
-    border-radius: 10px;
-    padding: 15px 20px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(212,160,23,0.25);
-  }
-  .btn:active { transform: scale(0.97); }
+/* CENTER BUTTON ON WHEEL */
+.center-btn {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border: 4px solid var(--bg);
+  box-shadow: 0 0 20px rgba(240,180,41,0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.15s ease;
+}
+.center-btn:active { transform: translate(-50%, -50%) scale(0.93); }
 
-  .best-score {
-    font-size: 12px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--flame);
-    margin-bottom: 22px;
-  }
+/* SPIN BUTTON */
+.spin-btn {
+  margin-top: 10px;
+  width: calc(100% - 40px);
+  max-width: 340px;
+  padding: 16px;
+  font-size: 16px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: #0A0812;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border: none; border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(240,180,41,0.35);
+  transition: all 0.2s ease;
+}
+.spin-btn:disabled {
+  background: linear-gradient(135deg, #3a3520, #2a2510);
+  color: rgba(245,230,200,0.3);
+  box-shadow: none; cursor: not-allowed;
+}
+.spin-btn:not(:disabled):active { transform: scale(0.97); }
 
-  #hud {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    z-index: 6;
-    display: none;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 18px 18px 0;
-    pointer-events: none;
-  }
-  #hud.active { display: flex; }
+/* TIMER */
+.timer-box {
+  margin-top: 14px;
+  padding: 12px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  text-align: center;
+}
+.timer-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.timer-value { font-size: 22px; font-weight: 700; color: var(--flame); font-variant-numeric: tabular-nums; }
 
-  .hud-score {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--parchment);
-    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
-  }
-  .hud-label {
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: rgba(245,230,200,0.7);
-  }
+/* RESULT PANEL */
+.result-panel {
+  margin-top: 16px;
+  width: calc(100% - 40px); max-width: 340px;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: center;
+  display: none;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.result-panel.show { display: block; }
+.result-won { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.result-coins { font-size: 32px; font-weight: 800; color: var(--gold); }
+.result-msg { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
 
-  #game-canvas {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: block;
-  }
+/* HISTORY */
+.history-wrap {
+  margin-top: 20px;
+  width: calc(100% - 40px); max-width: 340px;
+}
+.history-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-card); border: 1px solid var(--line); border-radius: 10px;
+  font-size: 12px;
+}
+.history-item .h-date { color: var(--muted); }
+.history-item .h-coins { font-weight: 700; color: var(--gold); }
+.history-item .h-coins.jackpot { color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
 
-  #screen-result .unveil-flame {
-    width: 70px; height: 70px; margin: 0 auto 18px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 30px;
-    background: radial-gradient(circle, rgba(232,131,58,0.22) 0%, transparent 75%);
-  }
-  #screen-result { justify-content: center; align-items: center; text-align: center; background: rgba(26,15,10,0.92); }
-  .result-score { font-size: 36px; color: var(--gold-soft); margin-bottom: 4px; font-weight: 600; }
-  .result-label { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--flame); margin-bottom: 22px; }
-  .result-best { font-size: 13px; color: rgba(245,230,200,0.6); margin-bottom: 26px; }
-  .result-best strong { color: var(--gold-soft); font-weight: 600; }
+/* CONGRATS OVERLAY */
+.congrats-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.85);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.congrats-overlay.show { opacity: 1; pointer-events: all; }
+.congrats-inner { text-align: center; position: relative; }
+.congrats-emoji { font-size: 80px; animation: bounce 0.6s ease infinite alternate; display: block; margin-bottom: 10px; }
+@keyframes bounce { from { transform: scale(1) translateY(0); } to { transform: scale(1.12) translateY(-10px); } }
+.congrats-title {
+  font-size: 36px; font-weight: 900;
+  background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 2px; margin-bottom: 8px;
+  animation: shimmer 1.5s linear infinite;
+  background-size: 200%;
+}
+@keyframes shimmer { 0% { background-position: 0% } 100% { background-position: 200% } }
+.congrats-sub { font-size: 16px; color: var(--parchment); margin-bottom: 6px; }
+.congrats-coins { font-size: 52px; font-weight: 900; color: #FFD700; text-shadow: 0 0 40px rgba(255,215,0,0.8); margin-bottom: 16px; }
+.congrats-close {
+  padding: 13px 36px; font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #0A0812; border: none; border-radius: 12px; cursor: pointer;
+  box-shadow: 0 6px 24px rgba(255,215,0,0.4);
+}
+.congrats-close:active { transform: scale(0.97); }
 
-  .btn-ghost {
-    background: transparent;
-    color: var(--gold-soft);
-    border: 1px solid var(--line);
-    box-shadow: none;
-    margin-top: 10px;
-  }
-
-  footer.brandmark {
-    position: absolute;
-    bottom: 14px; left: 0; right: 0;
-    text-align: center;
-    font-size: 10px;
-    color: rgba(245,230,200,0.3);
-    letter-spacing: 0.5px;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .swipe-hint {
-    position: absolute;
-    bottom: 70px; left: 0; right: 0;
-    text-align: center;
-    font-size: 12px;
-    color: rgba(245,230,200,0.55);
-    z-index: 6;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-  }
+/* STAR BURST for congrats */
+.star { position: absolute; pointer-events: none; animation: starFly 1.2s ease-out forwards; }
+@keyframes starFly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3); }
+}
 </style>
 </head>
 <body>
+<canvas id="particles"></canvas>
 
-<div class="stage" id="stage">
+<!-- CONGRATS OVERLAY -->
+<div class="congrats-overlay" id="congratsOverlay">
+  <div class="congrats-inner" id="congratsInner">
+    <span class="congrats-emoji">🎉</span>
+    <div class="congrats-title">GREAT DAY!</div>
+    <div class="congrats-sub">You hit the JACKPOT</div>
+    <div class="congrats-coins" id="congratsCoins">+500 🪙</div>
+    <button class="congrats-close" onclick="closeCongraits()">Claim Blessing ✨</button>
+  </div>
+</div>
 
-  <canvas id="game-canvas"></canvas>
+<div class="page">
 
-  <div id="hud">
-    <div>
-      <div class="hud-label">Distance</div>
-      <div class="hud-score" id="hud-score">0</div>
-    </div>
-    <div style="text-align:right;">
-      <div class="hud-label">Coins</div>
-      <div class="hud-score" id="hud-coins" style="color:#D4A017;">0</div>
-    </div>
+  <div class="header">
+    <a href="home.html" class="back-btn">&#8592; Home</a>
+    <div class="header-title">$BAWALIYA SPIN</div>
+    <div style="width:60px"></div>
   </div>
 
-  <div class="swipe-hint" id="swipe-hint">Swipe up to jump &middot; swipe down to duck</div>
+  <!-- COIN TOTAL -->
+  <div class="coin-display">
+    <div class="coin-label">Total Coins</div>
+    <div class="coin-amount" id="totalCoins">0 🪙</div>
+  </div>
 
-  <section id="screen-menu" class="screen active">
-    <div class="symbol">🪔</div>
-    <h1 class="title serif">Path to the Temple</h1>
-    <p class="subtitle">Run the devotee's road. Dodge what blocks the way. See how far faith carries you.</p>
-    <div class="best-score" id="menu-best">BEST: 0M</div>
-    <button class="btn" id="btn-start">Begin the Run</button>
-    <a href="home.html" class="btn btn-ghost" style="text-decoration:none; display:block; text-align:center; margin-top:12px;">Back to Path</a>
-  </section>
+  <!-- WHEEL -->
+  <div class="wheel-wrap">
+    <div class="wheel-glow"></div>
+    <div class="pointer"></div>
+    <canvas id="wheelCanvas" width="320" height="320"></canvas>
+    <div class="center-btn" id="centerBtn" onclick="doSpin()">🪔</div>
+  </div>
 
-  <section id="screen-result" class="screen">
-    <div class="unveil-flame">🔮</div>
-    <div class="result-score" id="result-score">0</div>
-    <div class="result-label">METERS WALKED TOWARD THE TEMPLE</div>
-    <div class="result-best" id="result-best">Best: <strong>0m</strong></div>
-    <div class="result-best" id="result-coins" style="margin-top:-16px;">Coins gathered: <strong>0</strong></div>
-    <button class="btn" id="btn-retry">Run Again</button>
-    <button class="btn btn-ghost" id="btn-menu">Back to Menu</button>
-    <a href="home.html" class="btn btn-ghost" style="text-decoration:none; display:block; text-align:center; margin-top:10px;">Back to Path</a>
-  </section>
+  <!-- SPIN BUTTON -->
+  <button class="spin-btn" id="spinBtn" onclick="doSpin()">🎯 SPIN NOW</button>
 
-  <footer class="brandmark serif">$BAWALIYA &middot; Dec 1, 2026 &middot; pump.fun</footer>
+  <!-- TIMER (shown when already spun today) -->
+  <div class="timer-box" id="timerBox" style="display:none">
+    <div class="timer-label">Next Free Spin In</div>
+    <div class="timer-value" id="timerVal">--:--:--</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-panel" id="resultPanel">
+    <div class="result-won">You won</div>
+    <div class="result-coins" id="resultCoins">0 🪙</div>
+    <div class="result-msg" id="resultMsg"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history-wrap" id="historyWrap" style="display:none">
+    <div class="history-title">Recent Spins</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
 </div>
 
 <script>
-(function () {
-  const tg = window.Telegram?.WebApp;
+(function() {
+  // ─── Telegram ───
+  var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  const STORAGE_KEY = 'bawaliya_runner_best';
+  // ─── Storage keys ───
+  var KEY_TOTAL   = 'baw_total_coins';
+  var KEY_LAST    = 'baw_last_spin';
+  var KEY_HISTORY = 'baw_history';
 
-  const stage = document.getElementById('stage');
-  const canvas = document.getElementById('game-canvas');
-  const ctx = canvas.getContext('2d');
+  // ─── Wheel segments ───
+  // 12 segments — mix of 20-200 values + one 500 jackpot
+  var SEGMENTS = [
+    { coins: 20,  color: '#1a1030', label: '20'  },
+    { coins: 50,  color: '#2a1a10', label: '50'  },
+    { coins: 30,  color: '#1a1030', label: '30'  },
+    { coins: 100, color: '#3a2800', label: '100' },
+    { coins: 70,  color: '#1a1030', label: '70'  },
+    { coins: 500, color: '#4a3000', label: '500 🔥', jackpot: true },
+    { coins: 40,  color: '#1a1030', label: '40'  },
+    { coins: 150, color: '#2a1a10', label: '150' },
+    { coins: 60,  color: '#1a1030', label: '60'  },
+    { coins: 200, color: '#3a2800', label: '200' },
+    { coins: 80,  color: '#1a1030', label: '80'  },
+    { coins: 120, color: '#2a1a10', label: '120' },
+  ];
+  var N = SEGMENTS.length;
+  var ARC = (2 * Math.PI) / N;
 
-  let W, H, GROUND_Y;
+  // ─── Canvas ───
+  var canvas = document.getElementById('wheelCanvas');
+  var ctx = canvas.getContext('2d');
+  var CX = canvas.width / 2, CY = canvas.height / 2, R = CX - 6;
 
-  function resize() {
-    const rect = stage.getBoundingClientRect();
-    W = rect.width;
-    H = rect.height;
-    canvas.width = W * devicePixelRatio;
-    canvas.height = H * devicePixelRatio;
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    GROUND_Y = H * 0.74;
+  var currentAngle = 0;
+  var isSpinning = false;
+
+  function drawWheel(angle) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < N; i++) {
+      var start = angle + i * ARC;
+      var end = start + ARC;
+      var seg = SEGMENTS[i];
+
+      // Slice
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.arc(CX, CY, R, start, end);
+      ctx.closePath();
+      ctx.fillStyle = seg.jackpot ? '#3a2000' : seg.color;
+      ctx.fill();
+
+      // Slice border
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.arc(CX, CY, R, start, end);
+      ctx.closePath();
+      ctx.strokeStyle = seg.jackpot ? '#FFD700' : 'rgba(240,180,41,0.3)';
+      ctx.lineWidth = seg.jackpot ? 2.5 : 1;
+      ctx.stroke();
+
+      // Label
+      ctx.save();
+      ctx.translate(CX, CY);
+      ctx.rotate(start + ARC / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = seg.jackpot ? '#FFD700' : '#F0B429';
+      ctx.font = seg.jackpot ? 'bold 13px sans-serif' : 'bold 14px sans-serif';
+      ctx.shadowColor = seg.jackpot ? 'rgba(255,215,0,0.8)' : 'rgba(240,180,41,0.6)';
+      ctx.shadowBlur = seg.jackpot ? 10 : 4;
+      ctx.fillText(seg.label, R - 12, 5);
+      ctx.restore();
+    }
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#F0B429';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Inner circle (center cap)
+    ctx.beginPath();
+    ctx.arc(CX, CY, 36, 0, 2 * Math.PI);
+    ctx.fillStyle = '#0A0812';
+    ctx.fill();
+    ctx.strokeStyle = '#F0B429';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
-  window.addEventListener('resize', resize);
-  resize();
 
-  const LANE_Y = () => GROUND_Y;
-  const PLAYER_X = () => W * 0.28;
-  const PLAYER_W = 34;
-  const PLAYER_H_STAND = 52;
-  const PLAYER_H_DUCK = 30;
+  drawWheel(currentAngle);
 
-  let running = false;
-  let raf = null;
-  let lastTime = 0;
-  let speed = 0;
-  const BASE_SPEED = 260;
-  const MAX_SPEED = 520;
+  // ─── Pick random segment (weighted — 500 is rarer) ───
+  function pickSegment() {
+    // jackpot has 1/20 probability, others share the rest equally
+    var r = Math.random();
+    if (r < 0.05) {
+      // find jackpot index
+      for (var i = 0; i < N; i++) { if (SEGMENTS[i].jackpot) return i; }
+    }
+    // pick from non-jackpot
+    var nonJackpot = [];
+    for (var j = 0; j < N; j++) { if (!SEGMENTS[j].jackpot) nonJackpot.push(j); }
+    return nonJackpot[Math.floor(Math.random() * nonJackpot.length)];
+  }
 
-  let distance = 0;
-  let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-  document.getElementById('menu-best').textContent = `BEST: ${best}M`;
+  // ─── State ───
+  function getTotal()   { return parseInt(localStorage.getItem(KEY_TOTAL) || '0'); }
+  function setTotal(v)  { localStorage.setItem(KEY_TOTAL, v); }
+  function getLastSpin(){ return parseInt(localStorage.getItem(KEY_LAST) || '0'); }
+  function setLastSpin(){ localStorage.setItem(KEY_LAST, Date.now()); }
+  function getHistory() { try { return JSON.parse(localStorage.getItem(KEY_HISTORY) || '[]'); } catch(e) { return []; } }
+  function saveHistory(h){ localStorage.setItem(KEY_HISTORY, JSON.stringify(h)); }
 
-  let player = {
-    y: 0,
-    vy: 0,
-    ducking: false,
-    state: 'run',
-    runCycle: 0
-  };
+  function canSpin() {
+    var last = getLastSpin();
+    if (!last) return true;
+    var diff = Date.now() - last;
+    return diff >= 24 * 60 * 60 * 1000;
+  }
 
-  const GRAVITY = 1700;
-  const JUMP_VELOCITY = -620;
+  // ─── UI update ───
+  function updateUI() {
+    document.getElementById('totalCoins').textContent = getTotal() + ' 🪙';
+    var spinBtn = document.getElementById('spinBtn');
+    var timerBox = document.getElementById('timerBox');
+    if (canSpin()) {
+      spinBtn.disabled = false;
+      spinBtn.textContent = '🎯 SPIN NOW';
+      timerBox.style.display = 'none';
+    } else {
+      spinBtn.disabled = true;
+      spinBtn.textContent = '⏳ Already Spun Today';
+      timerBox.style.display = 'block';
+    }
+    renderHistory();
+  }
 
-  let obstacles = [];
-  let coins = [];
-  let coinCount = 0;
-  let spawnTimer = 0;
-  let nextSpawnGap = 1.1;
-  let coinSpawnTimer = 0;
-  let nextCoinGap = 0.5;
+  // ─── Timer countdown ───
+  function updateTimer() {
+    if (canSpin()) { updateUI(); return; }
+    var last = getLastSpin();
+    var next = last + 24 * 60 * 60 * 1000;
+    var remaining = Math.max(0, next - Date.now());
+    var h = Math.floor(remaining / 3600000);
+    var m = Math.floor((remaining % 3600000) / 60000);
+    var s = Math.floor((remaining % 60000) / 1000);
+    document.getElementById('timerVal').textContent =
+      pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  function pad(n) { return n < 10 ? '0' + n : n; }
+  setInterval(updateTimer, 1000);
 
-  let groundOffset = 0;
-
-  function spawnObstacle() {
-    const type = Math.random() < 0.55 ? 'low' : 'high';
-    const w = type === 'low' ? 30 + Math.random() * 14 : 46 + Math.random() * 14;
-    const h = type === 'low' ? 38 + Math.random() * 16 : 26;
-    obstacles.push({
-      x: W + 40,
-      w, h, type,
-      passed: false
+  // ─── Render history ───
+  function renderHistory() {
+    var history = getHistory();
+    var wrap = document.getElementById('historyWrap');
+    var list = document.getElementById('historyList');
+    if (history.length === 0) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    list.innerHTML = '';
+    history.slice(0, 5).forEach(function(item) {
+      var el = document.createElement('div');
+      el.className = 'history-item';
+      var dateStr = new Date(item.ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      el.innerHTML = '<span class="h-date">' + dateStr + '</span>' +
+        '<span class="h-coins' + (item.coins === 500 ? ' jackpot' : '') + '">' +
+        (item.coins === 500 ? '🔥 ' : '') + '+' + item.coins + ' 🪙</span>';
+      list.appendChild(el);
     });
   }
 
-  // Coins spawn in short arcs of 3-5, at a height reachable while running normally
-  // (never forces a jump/duck just to collect — collection is a bonus, not a requirement)
-  function spawnCoinArc() {
-    const count = 3 + Math.floor(Math.random() * 3);
-    const startX = W + 60;
-    const gap = 34;
-    // arc sits at chest height while standing, so normal running collects most of them
-    const baseY = GROUND_Y - PLAYER_H_STAND * 0.62;
-    const arcHeight = Math.random() < 0.4 ? 26 : 0; // sometimes a gentle rise/fall
-    for (let i = 0; i < count; i++) {
-      const t = i / (count - 1 || 1);
-      const arcOffset = arcHeight ? -Math.sin(t * Math.PI) * arcHeight : 0;
-      coins.push({
-        x: startX + i * gap,
-        y: baseY + arcOffset,
-        r: 9,
-        collected: false,
-        spin: Math.random() * Math.PI * 2
-      });
-    }
-  }
+  // ─── SPIN ───
+  function doSpin() {
+    if (isSpinning || !canSpin()) return;
+    isSpinning = true;
+    document.getElementById('spinBtn').disabled = true;
+    document.getElementById('spinBtn').textContent = '🌀 Spinning...';
+    document.getElementById('resultPanel').classList.remove('show');
 
-  function resetGame() {
-    distance = 0;
-    speed = BASE_SPEED;
-    obstacles = [];
-    coins = [];
-    coinCount = 0;
-    spawnTimer = 0;
-    nextSpawnGap = 1.3;
-    coinSpawnTimer = 0;
-    nextCoinGap = 0.9;
-    player.y = 0;
-    player.vy = 0;
-    player.ducking = false;
-    player.state = 'run';
-    groundOffset = 0;
-    document.getElementById('hud-coins').textContent = '0';
-  }
+    var targetIndex = pickSegment();
+    // Angle of target segment's centre from 0 (top)
+    // pointer is at top (−π/2 from canvas convention)
+    // We want the segment at top = pointer position
+    var targetAngle = -(targetIndex * ARC + ARC / 2);
+    // Add 5-8 full rotations for drama
+    var spins = 5 + Math.floor(Math.random() * 4);
+    var finalAngle = targetAngle - (spins * 2 * Math.PI);
 
-  let touchStartY = null;
-  let touchStartTime = 0;
+    var startAngle = currentAngle;
+    var delta = finalAngle - startAngle;
+    var duration = 4000 + Math.random() * 1500; // 4–5.5s
+    var start = null;
 
-  function doJump() {
-    if (player.state === 'jump') return;
-    player.vy = JUMP_VELOCITY;
-    player.state = 'jump';
-    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-  }
-
-  function startDuck() {
-    if (player.state === 'jump') return;
-    player.ducking = true;
-    player.state = 'duck';
-  }
-
-  function endDuck() {
-    if (player.state === 'duck') {
-      player.ducking = false;
-      player.state = 'run';
-    }
-  }
-
-  stage.addEventListener('touchstart', (e) => {
-    if (!running) return;
-    touchStartY = e.touches[0].clientY;
-    touchStartTime = Date.now();
-  }, { passive: true });
-
-  stage.addEventListener('touchend', (e) => {
-    if (!running || touchStartY === null) return;
-    const endY = e.changedTouches[0].clientY;
-    const dy = endY - touchStartY;
-    const dt = Date.now() - touchStartTime;
-
-    if (Math.abs(dy) < 18 && dt < 300) {
-      doJump();
-    } else if (dy < -30) {
-      doJump();
-    } else if (dy > 30) {
-      startDuck();
-      setTimeout(endDuck, 420);
-    }
-    touchStartY = null;
-  }, { passive: true });
-
-  window.addEventListener('keydown', (e) => {
-    if (!running) return;
-    if (e.code === 'Space' || e.code === 'ArrowUp') doJump();
-    if (e.code === 'ArrowDown') startDuck();
-  });
-  window.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowDown') endDuck();
-  });
-
-  function drawSky() {
-    const grad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    grad.addColorStop(0, '#16223D');
-    grad.addColorStop(0.55, '#3A4D75');
-    grad.addColorStop(1, '#C97A4F');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, GROUND_Y);
-
-    ctx.beginPath();
-    ctx.arc(W * 0.78, GROUND_Y * 0.62, 34, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(232,199,102,0.85)';
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(26,15,10,0.55)';
-    const baseX = W * 0.78, baseY = GROUND_Y * 0.62;
-    ctx.beginPath();
-    ctx.moveTo(baseX - 26, baseY + 30);
-    ctx.lineTo(baseX - 26, baseY + 6);
-    ctx.lineTo(baseX - 14, baseY - 14);
-    ctx.lineTo(baseX, baseY - 30);
-    ctx.lineTo(baseX + 14, baseY - 14);
-    ctx.lineTo(baseX + 26, baseY + 6);
-    ctx.lineTo(baseX + 26, baseY + 30);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  function drawGround() {
-    ctx.fillStyle = '#1A0F0A';
-    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-
-    ctx.strokeStyle = 'rgba(212,160,23,0.35)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    ctx.lineTo(W, GROUND_Y);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(212,160,23,0.18)';
-    ctx.lineWidth = 3;
-    const dashLen = 26, gapLen = 22, total = dashLen + gapLen;
-    let x = -((groundOffset) % total);
-    while (x < W) {
-      ctx.beginPath();
-      ctx.moveTo(x, GROUND_Y + 14);
-      ctx.lineTo(x + dashLen, GROUND_Y + 14);
-      ctx.stroke();
-      x += total;
-    }
-  }
-
-  /* ============================================================
-     PLAYER — detailed saint character
-     Robe with shading + hem trim, defined beard, proper staff
-     with ornamental top, draped beads, dhoti folds while running.
-     ============================================================ */
-  function drawPlayer() {
-    const x = PLAYER_X();
-    const state = player.state;
-    const ducking = state === 'duck';
-    const jumping = state === 'jump';
-    const h = ducking ? PLAYER_H_DUCK : PLAYER_H_STAND;
-    const groundY = GROUND_Y - player.y;
-    const topY = groundY - h;
-
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    const robeColor = '#E8C766';
-    const robeShade = '#C9A24A';
-    const robeTrim = '#7A1F2B';
-    const skinColor = '#D9A86C';
-    const skinShade = '#B9854F';
-    const staffColor = '#8A5A2B';
-    const staffDark = '#5E3A18';
-    const tilakColor = '#E8833A';
-    const beadColor = '#7A1F2B';
-    const beadHighlight = '#9A3A48';
-    const beardColor = '#F0F0EC';
-    const beardShade = '#D8D8D0';
-
-    if (ducking) {
-      const cx = x, cy = topY + h * 0.5;
-
-      // staff trailing behind, drawn first so the body overlaps it
-      ctx.strokeStyle = staffColor;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx - PLAYER_W * 0.55, cy + h * 0.32);
-      ctx.lineTo(cx - PLAYER_W * 1.1, cy - h * 0.08);
-      ctx.stroke();
-      ctx.fillStyle = staffDark;
-      ctx.beginPath();
-      ctx.arc(cx - PLAYER_W * 1.1, cy - h * 0.08, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // crouched robe body with simple shading
-      ctx.fillStyle = robeColor;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + h * 0.18, PLAYER_W * 0.64, h * 0.44, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = robeShade;
-      ctx.beginPath();
-      ctx.ellipse(cx + 4, cy + h * 0.3, PLAYER_W * 0.5, h * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // hem trim line
-      ctx.strokeStyle = robeTrim;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + h * 0.3, PLAYER_W * 0.55, h * 0.3, 0, 0.1, Math.PI - 0.1);
-      ctx.stroke();
-
-      // beads
-      ctx.fillStyle = beadColor;
-      for (let i = -1; i <= 1; i++) {
-        ctx.beginPath();
-        ctx.arc(cx + 5 + i * 3, cy - h * 0.05 + Math.abs(i) * 1.5, 1.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // head, tucked low
-      ctx.beginPath();
-      ctx.fillStyle = skinColor;
-      ctx.arc(cx + 6, cy - h * 0.24, 7.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // short beard hint while ducking
-      ctx.fillStyle = beardColor;
-      ctx.beginPath();
-      ctx.ellipse(cx + 6, cy - h * 0.24 + 6, 5, 4, 0, 0, Math.PI);
-      ctx.fill();
-
-      // tilak
-      ctx.strokeStyle = tilakColor;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(cx + 6, cy - h * 0.24 - 6.5);
-      ctx.lineTo(cx + 6, cy - h * 0.24 - 1.5);
-      ctx.stroke();
-
-      ctx.restore();
-      return;
+    function easeOut(t) {
+      return 1 - Math.pow(1 - t, 4);
     }
 
-    // running / jumping figure with limbs
-    const cycle = player.runCycle;
-    const swing = jumping ? 0.55 : Math.sin(cycle * Math.PI * 2);
-    const swingBack = jumping ? -0.4 : Math.sin(cycle * Math.PI * 2 + Math.PI);
-
-    const headR = 10.5;
-    const headCx = x;
-    const headCy = topY + headR + 4;
-    const shoulderY = headCy + headR + 4;
-    const hipY = shoulderY + h * 0.36;
-    const legLen = groundY - hipY;
-
-    // helper: draw a tapered limb segment as a filled shape (reads as a real limb, not a stick)
-    function limb(x0, y0, x1, y1, w0, w1, color) {
-      const dx = x1 - x0, dy = y1 - y0;
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len, ny = dx / len;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(x0 + nx * w0, y0 + ny * w0);
-      ctx.lineTo(x1 + nx * w1, y1 + ny * w1);
-      ctx.lineTo(x1 - nx * w1, y1 - ny * w1);
-      ctx.lineTo(x0 - nx * w0, y0 - ny * w0);
-      ctx.closePath();
-      ctx.fill();
-      // rounded joints
-      ctx.beginPath(); ctx.arc(x0, y0, w0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x1, y1, w1, 0, Math.PI * 2); ctx.fill();
-    }
-
-    // ---- back leg (thigh in robe shade, calf in skin tone) ----
-    let backKneeX, backKneeY, backFootX, backFootY;
-    if (jumping) {
-      backKneeX = x - 8; backKneeY = hipY + legLen * 0.52; backFootX = x - 12; backFootY = hipY + legLen * 0.92;
-    } else {
-      backKneeX = x + swingBack * 10; backKneeY = hipY + legLen * 0.58; backFootX = x + swingBack * 14; backFootY = groundY;
-    }
-    limb(x - 4, hipY, backKneeX, backKneeY, 7, 5.5, robeShade);
-    limb(backKneeX, backKneeY, backFootX, backFootY, 4.5, 3.4, skinShade);
-    // foot
-    ctx.fillStyle = skinShade;
-    ctx.beginPath(); ctx.ellipse(backFootX + (jumping ? -2 : swingBack*3), backFootY, 5.5, 3, 0, 0, Math.PI*2); ctx.fill();
-
-    // ---- front leg ----
-    let frontKneeX, frontKneeY, frontFootX, frontFootY;
-    if (jumping) {
-      frontKneeX = x + 10; frontKneeY = hipY + legLen * 0.48; frontFootX = x + 15; frontFootY = hipY + legLen * 0.82;
-    } else {
-      frontKneeX = x + swing * 10; frontKneeY = hipY + legLen * 0.58; frontFootX = x + swing * 14; frontFootY = groundY;
-    }
-    limb(x + 4, hipY, frontKneeX, frontKneeY, 7.2, 5.8, robeColor);
-    limb(frontKneeX, frontKneeY, frontFootX, frontFootY, 4.8, 3.6, skinColor);
-    ctx.fillStyle = skinColor;
-    ctx.beginPath(); ctx.ellipse(frontFootX + (jumping ? 2 : swing*3), frontFootY, 5.5, 3, 0, 0, Math.PI*2); ctx.fill();
-
-    // ---- torso: fuller, rounded, tapered waist-to-shoulders ----
-    ctx.fillStyle = robeColor;
-    ctx.beginPath();
-    ctx.moveTo(x - PLAYER_W * 0.46, shoulderY + 2);
-    ctx.quadraticCurveTo(x - PLAYER_W * 0.5, hipY - 4, x - PLAYER_W * 0.34, hipY + 6);
-    ctx.lineTo(x + PLAYER_W * 0.34, hipY + 6);
-    ctx.quadraticCurveTo(x + PLAYER_W * 0.5, hipY - 4, x + PLAYER_W * 0.46, shoulderY + 2);
-    ctx.quadraticCurveTo(x, shoulderY - 7, x - PLAYER_W * 0.46, shoulderY + 2);
-    ctx.closePath();
-    ctx.fill();
-    // shaded side panel for roundness
-    ctx.fillStyle = robeShade;
-    ctx.beginPath();
-    ctx.moveTo(x + 3, shoulderY + 3);
-    ctx.quadraticCurveTo(x + PLAYER_W * 0.42, hipY - 5, x + PLAYER_W * 0.36, hipY + 4);
-    ctx.lineTo(x + 8, hipY + 4);
-    ctx.quadraticCurveTo(x + 10, hipY - 6, x + 3, shoulderY + 3);
-    ctx.closePath();
-    ctx.fill();
-    // robe trim collar (v-neck)
-    ctx.strokeStyle = robeTrim;
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(x - PLAYER_W * 0.3, shoulderY + 1);
-    ctx.lineTo(x, shoulderY + 10);
-    ctx.lineTo(x + PLAYER_W * 0.3, shoulderY + 1);
-    ctx.stroke();
-
-    // bead necklace, draped in a soft V across chest
-    ctx.fillStyle = beadColor;
-    const beadY = shoulderY + 8;
-    for (let i = -3; i <= 3; i++) {
-      const dip = (3 - Math.abs(i)) * 1.8;
-      ctx.beginPath();
-      ctx.arc(x + i * 3.6, beadY + dip, 2, 0, Math.PI * 2);
-      ctx.fill();
-      if (i % 2 === 0) {
-        ctx.fillStyle = beadHighlight;
-        ctx.beginPath();
-        ctx.arc(x + i * 3.6 - 0.6, beadY + dip - 0.6, 0.7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = beadColor;
+    function animate(ts) {
+      if (!start) start = ts;
+      var elapsed = ts - start;
+      var progress = Math.min(elapsed / duration, 1);
+      var eased = easeOut(progress);
+      currentAngle = startAngle + delta * eased;
+      drawWheel(currentAngle);
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        currentAngle = finalAngle % (2 * Math.PI);
+        drawWheel(currentAngle);
+        onSpinComplete(targetIndex);
       }
     }
-
-    // ---- arms: bare, tapered, swinging naturally with the run cycle ----
-    let backHandX, backHandY;
-    if (jumping) { backHandX = x - 13; backHandY = shoulderY - 4; }
-    else { backHandX = x - 6 + swingBack * 9; backHandY = shoulderY + 14 + Math.abs(swing) * 5; }
-    limb(x - 5, shoulderY + 4, backHandX, backHandY, 4.6, 3.4, skinShade);
-
-    let frontHandX, frontHandY;
-    if (jumping) { frontHandX = x + 14; frontHandY = shoulderY - 2; }
-    else { frontHandX = x + 6 + swing * 9; frontHandY = shoulderY + 14 + Math.abs(swingBack) * 5; }
-    limb(x + 5, shoulderY + 4, frontHandX, frontHandY, 4.8, 3.6, skinColor);
-
-    // head, with shaded side for roundness
-    ctx.beginPath();
-    ctx.fillStyle = skinColor;
-    ctx.arc(headCx, headCy, headR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = skinShade;
-    ctx.beginPath();
-    ctx.arc(headCx + 4, headCy + 1, headR * 0.62, 0, Math.PI * 2);
-    ctx.fill();
-    // re-cover with base tone on the front-facing side so only a thin shade rim shows
-    ctx.fillStyle = skinColor;
-    ctx.beginPath();
-    ctx.arc(headCx + 1, headCy, headR * 0.86, 0, Math.PI * 2);
-    ctx.fill();
-
-    // flowing white beard
-    ctx.fillStyle = beardColor;
-    ctx.beginPath();
-    ctx.moveTo(headCx - headR * 0.7, headCy + headR * 0.25);
-    ctx.quadraticCurveTo(headCx - 1, headCy + headR * 1.9, headCx + headR * 0.55, headCy + headR * 0.9);
-    ctx.quadraticCurveTo(headCx + headR * 0.3, headCy + headR * 0.5, headCx - headR * 0.7, headCy + headR * 0.25);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = beardShade;
-    ctx.beginPath();
-    ctx.moveTo(headCx - headR * 0.2, headCy + headR * 0.6);
-    ctx.quadraticCurveTo(headCx + 2, headCy + headR * 1.6, headCx + headR * 0.45, headCy + headR * 0.85);
-    ctx.quadraticCurveTo(headCx + headR * 0.2, headCy + headR * 0.65, headCx - headR * 0.2, headCy + headR * 0.6);
-    ctx.closePath();
-    ctx.fill();
-
-    // tilak mark on forehead — thicker, more deliberate
-    ctx.strokeStyle = tilakColor;
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(headCx, headCy - headR + 1);
-    ctx.lineTo(headCx, headCy - 1);
-    ctx.stroke();
-    ctx.strokeStyle = beadColor;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(headCx - 2, headCy - headR + 3);
-    ctx.lineTo(headCx - 2, headCy - 2);
-    ctx.stroke();
-
-    ctx.restore();
+    requestAnimationFrame(animate);
   }
 
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
+  function onSpinComplete(index) {
+    isSpinning = false;
+    var seg = SEGMENTS[index];
+    var coins = seg.coins;
 
-  function drawObstacle(o) {
-    ctx.fillStyle = o.type === 'low' ? '#7A1F2B' : '#5A1620';
-    const y = o.type === 'low' ? GROUND_Y - o.h : GROUND_Y - PLAYER_H_STAND - 6 - o.h + 14;
-    roundRect(o.x, y, o.w, o.h, 5);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(212,160,23,0.4)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
+    // Save
+    setTotal(getTotal() + coins);
+    setLastSpin();
+    var history = getHistory();
+    history.unshift({ coins: coins, ts: Date.now() });
+    saveHistory(history);
 
-  function drawCoin(c) {
-    if (c.collected) return;
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    // gentle spin effect by squashing horizontally based on a phase value
-    const squash = Math.cos(c.spin);
-    ctx.scale(Math.max(0.25, Math.abs(squash)), 1);
-    ctx.beginPath();
-    ctx.arc(0, 0, c.r, 0, Math.PI * 2);
-    ctx.fillStyle = '#D4A017';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(0, 0, c.r * 0.62, 0, Math.PI * 2);
-    ctx.strokeStyle = '#7A1F2B';
-    ctx.lineWidth = 1.3;
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function getPlayerBox() {
-    const x = PLAYER_X();
-    const ducking = player.state === 'duck';
-    const h = ducking ? PLAYER_H_DUCK : PLAYER_H_STAND;
-    const y = GROUND_Y - h - player.y;
-    return { x: x - PLAYER_W / 2, y, w: PLAYER_W, h };
-  }
-
-  function getObstacleBox(o) {
-    const y = o.type === 'low' ? GROUND_Y - o.h : GROUND_Y - PLAYER_H_STAND - 6 - o.h + 14;
-    return { x: o.x, y, w: o.w, h: o.h };
-  }
-
-  function intersects(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  }
-
-  function update(dt) {
-    speed = Math.min(MAX_SPEED, BASE_SPEED + distance * 0.6);
-    distance += speed * dt * 0.05;
-    groundOffset += speed * dt;
-
-    player.vy += GRAVITY * dt;
-    player.y -= player.vy * dt;
-    if (player.y < 0) { player.y = 0; player.vy = 0; if (player.state === 'jump') player.state = 'run'; }
-
-    if (player.state === 'run') {
-      player.runCycle = (player.runCycle + dt * (2.2 + speed / 260)) % 1;
+    // Haptic
+    if (tg && tg.HapticFeedback) {
+      tg.HapticFeedback.notificationOccurred(coins === 500 ? 'success' : 'warning');
     }
 
-    spawnTimer += dt;
-    if (spawnTimer >= nextSpawnGap) {
-      spawnTimer = 0;
-      nextSpawnGap = Math.max(0.65, 1.3 - distance / 900);
-      spawnObstacle();
+    // Show result
+    var panel = document.getElementById('resultPanel');
+    document.getElementById('resultCoins').textContent = '+' + coins + ' 🪙';
+    var msg = '';
+    if (coins === 500)       msg = '🔥 JACKPOT! The saint blesses you greatly today!';
+    else if (coins >= 150)   msg = '✨ Excellent! The prophecy smiles upon you.';
+    else if (coins >= 80)    msg = '🪔 Good spin! The blessing is with you.';
+    else                     msg = 'Every coin is a step on the path.';
+    document.getElementById('resultMsg').textContent = msg;
+    panel.classList.add('show');
+
+    updateUI();
+
+    // JACKPOT overlay
+    if (coins === 500) {
+      setTimeout(function() { showCongrats(coins); }, 400);
     }
+  }
 
-    coinSpawnTimer += dt;
-    if (coinSpawnTimer >= nextCoinGap) {
-      coinSpawnTimer = 0;
-      nextCoinGap = 1.1 + Math.random() * 1.2;
-      spawnCoinArc();
+  // ─── Congrats overlay ───
+  window.closeCongraits = function() {
+    document.getElementById('congratsOverlay').classList.remove('show');
+  };
+
+  function showCongrats(coins) {
+    document.getElementById('congratsCoins').textContent = '+' + coins + ' 🪙';
+    var overlay = document.getElementById('congratsOverlay');
+    overlay.classList.add('show');
+    spawnStars();
+    if (tg && tg.HapticFeedback) {
+      tg.HapticFeedback.notificationOccurred('success');
     }
+  }
 
-    const playerBox = getPlayerBox();
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const o = obstacles[i];
-      o.x -= speed * dt;
-      if (o.x + o.w < -20) { obstacles.splice(i, 1); continue; }
-      if (intersects(playerBox, getObstacleBox(o))) {
-        endRun();
-        return;
-      }
+  function spawnStars() {
+    var inner = document.getElementById('congratsInner');
+    var colors = ['#FFD700','#FFA500','#FF6B35','#FFE066','#FFFFFF'];
+    for (var i = 0; i < 24; i++) {
+      (function(i) {
+        setTimeout(function() {
+          var star = document.createElement('div');
+          star.className = 'star';
+          star.textContent = ['⭐','✨','🌟','💫'][Math.floor(Math.random() * 4)];
+          star.style.fontSize = (12 + Math.random() * 20) + 'px';
+          star.style.left = (20 + Math.random() * 60) + '%';
+          star.style.top = (20 + Math.random() * 60) + '%';
+          var tx = (Math.random() - 0.5) * 300;
+          var ty = (Math.random() - 0.5) * 300;
+          star.style.setProperty('--tx', tx + 'px');
+          star.style.setProperty('--ty', ty + 'px');
+          star.style.animationDelay = (Math.random() * 0.3) + 's';
+          inner.appendChild(star);
+          setTimeout(function() { star.remove(); }, 1500);
+        }, i * 60);
+      })(i);
     }
-
-    for (let i = coins.length - 1; i >= 0; i--) {
-      const c = coins[i];
-      c.x -= speed * dt;
-      c.spin += dt * 6;
-      if (c.x < -20) { coins.splice(i, 1); continue; }
-      if (!c.collected) {
-        const cBox = { x: c.x - c.r, y: c.y - c.r, w: c.r * 2, h: c.r * 2 };
-        if (intersects(playerBox, cBox)) {
-          c.collected = true;
-          coinCount++;
-          document.getElementById('hud-coins').textContent = coinCount;
-          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-        }
-      }
-    }
-    coins = coins.filter(c => !c.collected || c.x > -20);
-
-    document.getElementById('hud-score').textContent = Math.floor(distance);
   }
 
-  function render() {
-    ctx.clearRect(0, 0, W, H);
-    drawSky();
-    drawGround();
-    obstacles.forEach(drawObstacle);
-    coins.forEach(drawCoin);
-    drawPlayer();
+  // ─── Particle system ───
+  var pcCanvas = document.getElementById('particles');
+  var pcCtx = pcCanvas.getContext('2d');
+  var pcW, pcH;
+  function pcResize() { pcW = pcCanvas.width = window.innerWidth; pcH = pcCanvas.height = window.innerHeight; }
+  window.addEventListener('resize', pcResize); pcResize();
+  var pts = [];
+  for (var i = 0; i < 25; i++) {
+    pts.push({
+      x: Math.random(), y: Math.random(),
+      vy: -(0.05 + Math.random() * 0.1),
+      vx: (Math.random() - 0.5) * 0.02,
+      size: 0.8 + Math.random() * 2,
+      alpha: 0.2 + Math.random() * 0.6,
+      fade: 0.002 + Math.random() * 0.004,
+      color: Math.random() < 0.6 ? [240,180,41] : [232,131,58]
+    });
   }
-
-  function loop(ts) {
-    if (!running) return;
-    if (!lastTime) lastTime = ts;
-    const dt = Math.min(0.033, (ts - lastTime) / 1000);
-    lastTime = ts;
-    update(dt);
-    if (!running) return;
-    render();
-    raf = requestAnimationFrame(loop);
+  function resetPt(p) { p.x = 0.1 + Math.random() * 0.8; p.y = 1.05; p.alpha = 0.3 + Math.random() * 0.6; }
+  function pcTick() {
+    pcCtx.clearRect(0, 0, pcW, pcH);
+    pts.forEach(function(p) {
+      p.y += p.vy * 0.016; p.x += p.vx * 0.016; p.alpha -= p.fade;
+      if (p.alpha <= 0 || p.y < -0.02) { resetPt(p); return; }
+      pcCtx.beginPath();
+      pcCtx.arc(p.x * pcW, p.y * pcH, p.size, 0, Math.PI * 2);
+      pcCtx.fillStyle = 'rgba(' + p.color + ',' + p.alpha + ')';
+      pcCtx.fill();
+    });
+    requestAnimationFrame(pcTick);
   }
+  requestAnimationFrame(pcTick);
 
-  function startRun() {
-    resetGame();
-    running = true;
-    lastTime = 0;
-    showScreen('none');
-    document.getElementById('hud').classList.add('active');
-    const hint = document.getElementById('swipe-hint');
-    hint.style.opacity = '1';
-    setTimeout(() => { hint.style.opacity = '0'; }, 2800);
-    raf = requestAnimationFrame(loop);
-  }
+  // ─── Init ───
+  updateUI();
+  drawWheel(currentAngle);
 
-  function endRun() {
-    running = false;
-    cancelAnimationFrame(raf);
-    document.getElementById('hud').classList.remove('active');
-
-    const finalScore = Math.floor(distance);
-    let prevBest;
-    try {
-      prevBest = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-    } catch (e) { prevBest = best; }
-    if (finalScore > prevBest) {
-      best = finalScore;
-      try { localStorage.setItem(STORAGE_KEY, String(best)); } catch (e) {}
-    } else {
-      best = prevBest;
-    }
-
-    document.getElementById('result-score').textContent = finalScore;
-    document.getElementById('result-best').innerHTML = `Best: <strong>${best}m</strong>`;
-    document.getElementById('result-coins').innerHTML = `Coins gathered: <strong>${coinCount}</strong>`;
-    document.getElementById('menu-best').textContent = `BEST: ${best}M`;
-
-    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-    showScreen('screen-result');
-  }
-
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    if (id !== 'none') document.getElementById(id).classList.add('active');
-  }
-
-  document.getElementById('btn-start').addEventListener('click', startRun);
-  document.getElementById('btn-retry').addEventListener('click', startRun);
-  document.getElementById('btn-menu').addEventListener('click', () => showScreen('screen-menu'));
-
-  render();
 })();
 </script>
 </body>
-</html>
+</html>'''
+
+with open('/tmp/spin_game.html', 'w') as f:
+    f.write(html)
+print('Done:', len(html), 'bytes')
+PYEOF
+python3 /tmp/build_spin.py
